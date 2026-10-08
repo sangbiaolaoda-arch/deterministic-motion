@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 的发展史 · 45 秒确定性动画</title>
+<style>
+  :root{
+    --bg:#07070A; --panel:#111219; --line:rgba(255,255,255,.10);
+    --ink:#F4EFE6; --muted:#8E8B84; --accent:#EBA23C;
+    --font-display:"Songti SC","STSong","Noto Serif SC",Georgia,serif;
+    --font-body:"PingFang SC","Microsoft YaHei","Noto Sans SC",-apple-system,"Segoe UI",sans-serif;
+    --font-mono:"SF Mono","JetBrains Mono",Menlo,Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body)}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 56px}
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:.06em;margin:0}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13.5px;line-height:1.5;max-width:560px}
+  .badge{font-family:var(--font-mono);font-size:11.5px;color:var(--accent);border:1px solid var(--line);border-radius:999px;padding:6px 12px;white-space:nowrap}
+  .stage{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#0B0C10;box-shadow:0 24px 60px -30px rgba(0,0,0,.9)}
+  canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+  .bar{display:flex;align-items:center;gap:14px;margin-top:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 auto;border-radius:10px;border:1px solid var(--line);background:#191A23;color:var(--ink);cursor:pointer;transition:.15s}
+  .icon-btn:hover{background:#22232e;border-color:rgba(255,255,255,.2)}
+  .icon-btn svg{fill:currentColor}
+  #scrub{-webkit-appearance:none;appearance:none;flex:1 1 auto;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent)) no-repeat,rgba(255,255,255,.12);background-size:0% 100%;cursor:pointer}
+  #scrub::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 4px rgba(235,162,60,.25)}
+  #scrub::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#fff}
+  .time{font-family:var(--font-mono);font-size:13px;color:var(--muted);white-space:nowrap;min-width:108px;text-align:right}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:12.5px;cursor:pointer;transition:.15s;font-family:var(--font-body)}
+  .chip:hover{border-color:rgba(255,255,255,.22);color:var(--ink)}
+  .chip.on{color:var(--ink);border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.05)}
+  .chip .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .chip .n{font-family:var(--font-mono);font-size:11px;opacity:.8}
+  footer{margin-top:22px;color:var(--muted);font-size:12.5px;line-height:1.7;border-top:1px solid var(--line);padding-top:16px}
+  footer b{color:var(--ink);font-weight:600}
+  footer code{font-family:var(--font-mono);font-size:11.5px;color:var(--accent)}
+  @media (max-width:560px){
+    .wrap{padding:18px 12px 40px}
+    h1{font-size:23px}
+    .time{min-width:88px;font-size:12px}
+    .bar{gap:10px;padding:10px}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>AI 的发展史</h1>
+        <p>一段 45 秒的确定性动画：由「拍表」驱动，逐帧纯函数渲染。从图灵之问到生成式未来，同一帧永远得到同一画面——这是可复现视频管线的地基。</p>
+      </div>
+      <div class="badge">1920 × 1080 · 30fps · 1350 帧</div>
+    </header>
+
+    <div class="stage">
+      <canvas id="stage" width="1920" height="1080" aria-label="AI 的发展史 45 秒动画"></canvas>
+    </div>
+
+    <div class="bar">
+      <button id="play" class="icon-btn" aria-label="播放"></button>
+      <input id="scrub" type="range" min="0" max="1349" value="0" step="1" aria-label="进度">
+      <span id="time" class="time">00:00 / 00:45</span>
+      <button id="restart" class="icon-btn" aria-label="重播">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+      </button>
+    </div>
+
+    <div id="chips" class="chips" aria-label="逐拍导航"></div>
+
+    <footer>
+      <p><b>交互</b>：空格 播放/暂停 · ←/→ 逐帧（Shift 加速一秒） · Home/End 首尾 · R 重播 · 点击画面亦可暂停。<br>
+      <b>确定性契约</b>：无墙钟依赖、无未种子随机、固定分辨率与时长、逐帧可 seek；随机元素由 <code>hash(拍标识)</code> 播种，跨机器一致。<br>
+      <b>自检</b>：控制台执行 <code>window.__HH.selfTest()</code> 可对同帧渲染两次并比较像素，验证确定性。</p>
+    </footer>
+  </div>
+
+<script type="module">
+// ============================================================================
+// core.mjs — AI 的发展史 · 45s 确定性动画内核
+//
+// 设计契约（与 deterministic-motion 一致）：
+//   渲染 = 纯函数 renderFrame(frame) -> 像素。无墙钟依赖、无未种子随机、
+//   固定分辨率与时长、逐帧可 seek。预览与"截图/渲染"走同一函数。
+//
+// 不变量（任何时刻都必须成立）：
+//   I1  0 <= frame <= TOTAL_FRAMES-1，且 TOTAL_FRAMES = FPS*DURATION_S = 1350
+//   I2  renderFrame(frame) 是纯函数：同一 frame 必得同一画面
+//   I3  所有随机来自带种子的 PRNG（mulberry32），种子 = hash(稳定字符串)
+//   I4  拍的局部进度 local ∈ [0,1]，由 (frame - startF)/durF 推出，不单独存储
+//   I5  「拍表」BEATS 是唯一真相；startF/endF 由累计时长派生，无缝拼满 [0,TOTAL)
+// ============================================================================
+
+const W = 1920;
+const H = 1080;
+const FPS = 30;
+const DURATION_S = 45;
+const TOTAL_FRAMES = FPS * DURATION_S; // 1350
+const CROSS = 15;                       // 拍间交叉溶解帧数（0.5s）
+const SCENE_CY = H * 0.38;              // 场景中心 y
+
+// ---- 拍表：唯一真相（AI 发展史，7 拍，合计 45s）--------------------------
+const BEATS = [
+  { t: 0,  dur: 6, index: '01', title: '图灵之问',   caption: '1950 · 图灵测试：机器能思考吗？',   color: '#6FB4E8', scene: 'turing'      },
+  { t: 6,  dur: 6, index: '02', title: 'AI 诞生',    caption: '1956 · 达特茅斯会议，人工智能得名',  color: '#EBA23C', scene: 'birth'       },
+  { t: 12, dur: 6, index: '03', title: '专家系统',   caption: '1970–80s · 规则与知识库，几经寒冬',  color: '#9AA7B5', scene: 'rules'       },
+  { t: 18, dur: 6, index: '04', title: '机器学习',   caption: '1990–2000s · 从规则转向数据与统计',  color: '#57D2E6', scene: 'ml'          },
+  { t: 24, dur: 6, index: '05', title: '深度学习',   caption: '2012 · 多层神经网络，感知突破',      color: '#A97BFF', scene: 'deep'        },
+  { t: 30, dur: 7, index: '06', title: '大模型',     caption: '2017 · Transformer，注意力即一切',   color: '#E0552B', scene: 'transformer' },
+  { t: 37, dur: 8, index: '07', title: '生成式未来', caption: '2020s · 对话、生成与涌现',           color: '#57E6A0', scene: 'generative'  },
+];
+
+// ---- 派生：按累计时长拼接，保证 I5（派生量不单独存储）--------------------
+const BEAT_FRAMES = (function () {
+  let acc = 0;
+  return BEATS.map(function (b) {
+    const s = acc;
+    const e = acc + Math.round(b.dur * FPS);
+    acc = e;
+    return {
+      id: b.scene, t: b.t, index: b.index, title: b.title, caption: b.caption,
+      color: b.color, scene: b.scene, startF: s, endF: e, durF: e - s,
+    };
+  });
+})();
+
+// ---- 基础数学 -------------------------------------------------------------
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeOutCubic(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+function easeInOutCubic(t) { t = clamp(t, 0, 1); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+function smoothstep(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+
+// ---- 带种子的确定性随机（I3）---------------------------------------------
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashStr(s) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+// ---- 颜色 ----------------------------------------------------------------
+function toRgb(c) {
+  if (typeof c === 'string' && c.charAt(0) === '#') {
+    let h = c.slice(1);
+    if (h.length === 3) h = h.split('').map(function (x) { return x + x; }).join('');
+    const n = parseInt(h, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  const m = String(c).match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  return m ? [+m[1], +m[2], +m[3]] : [255, 255, 255];
+}
+function rgba(c, a) { const q = toRgb(c); return 'rgba(' + q[0] + ',' + q[1] + ',' + q[2] + ',' + a + ')'; }
+function lerpColor(c1, c2, t) {
+  const a = toRgb(c1), b = toRgb(c2);
+  return 'rgb(' + Math.round(lerp(a[0], b[0], t)) + ',' + Math.round(lerp(a[1], b[1], t)) + ',' + Math.round(lerp(a[2], b[2], t)) + ')';
+}
+
+function fmtTime(s) {
+  s = Math.max(0, s);
+  const m = Math.floor(s / 60), ss = Math.floor(s % 60);
+  return String(m).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+}
+
+// ---- 字体角色 ------------------------------------------------------------
+const FONT_DISPLAY = '"Songti SC","STSong","Noto Serif SC",Georgia,"Times New Roman",serif';
+const FONT_BODY = '"PingFang SC","Microsoft YaHei","Noto Sans SC",-apple-system,"Segoe UI",sans-serif';
+const FONT_UTIL = FONT_BODY;
+const FONT_MONO = '"SF Mono","JetBrains Mono",Menlo,Consolas,"Courier New",monospace';
+
+// ---- 规模缓存：同一场景的随机元素只生成一次（确定性且高效）--------------
+const _cache = new Map();
+function cached(key, make) {
+  if (!_cache.has(key)) _cache.set(key, make());
+  return _cache.get(key);
+}
+
+// ---- 时间线：frame -> { i, beat, local, prev, next } ----------------------
+function timelineAt(frame) {
+  const f = clamp(Math.round(frame), 0, TOTAL_FRAMES - 1); // I1
+  let i = 0;
+  for (let k = 0; k < BEAT_FRAMES.length; k++) {
+    if (f < BEAT_FRAMES[k].endF) { i = k; break; }
+    i = k;
+  }
+  const beat = BEAT_FRAMES[i];
+  const local = (f - beat.startF) / beat.durF; // I4 派生
+  return { i: i, frame: f, beat: beat, local: local, prev: i > 0 ? BEAT_FRAMES[i - 1] : null, next: i < BEAT_FRAMES.length - 1 ? BEAT_FRAMES[i + 1] : null };
+}
+
+// ===========================================================================
+// 通用绘图小工具
+// ===========================================================================
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ===========================================================================
+// 场景绘制：以原点为中心、y 向下；只用 (p ∈ [0,1], color)，全部确定性。
+// ===========================================================================
+const SCENES = {
+  // 01 图灵之问：图灵机纸带 + 读写头 + 升起的问号
+  turing: function (ctx, p, color) {
+    const bandY = 30, bandH = 150, cellW = 74, span = 1520;
+    const bits = cached('turing:bits', function () {
+      const r = mulberry32(hashStr('turing|bits'));
+      return Array.from({ length: 48 }, function () { return r() < 0.5 ? '0' : '1'; });
+    });
+    const off = (p * cellW * 2) % cellW;
+    const base = Math.floor(p * 2);
+    ctx.save();
+    ctx.fillStyle = rgba(color, 0.05);
+    ctx.fillRect(-760, bandY, span, bandH);
+    ctx.strokeStyle = rgba(color, 0.3); ctx.lineWidth = 2;
+    ctx.strokeRect(-760, bandY, span, bandH);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '600 52px ' + FONT_MONO;
+    const n = Math.ceil(span / cellW) + 2;
+    for (let i = -1; i < n; i++) {
+      const x = -760 + i * cellW - off;
+      if (x < -760 || x > 760) continue;
+      ctx.strokeStyle = rgba(color, 0.15);
+      ctx.beginPath(); ctx.moveTo(x + cellW, bandY); ctx.lineTo(x + cellW, bandY + bandH); ctx.stroke();
+      const bi = ((i + base) % bits.length + bits.length) % bits.length;
+      ctx.fillStyle = rgba(color, 0.85);
+      ctx.fillText(bits[bi], x + cellW / 2, bandY + bandH / 2 + 2);
+    }
+    // 读写头
+    ctx.fillStyle = rgba(color, 0.95);
+    ctx.shadowColor = color; ctx.shadowBlur = 26;
+    ctx.beginPath(); ctx.moveTo(0, bandY - 98); ctx.lineTo(42, bandY - 26); ctx.lineTo(-42, bandY - 26); ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = rgba(color, 1); ctx.lineWidth = 3;
+    ctx.strokeRect(-cellW / 2, bandY, cellW, bandH);
+    // 升起的问号
+    const qs = cached('turing:q', function () {
+      const r = mulberry32(hashStr('turing|q'));
+      return Array.from({ length: 16 }, function () { return { x: (r() - 0.5) * 1420, o: r(), s: 0.5 + r() }; });
+    });
+    ctx.font = '700 46px ' + FONT_DISPLAY;
+    for (let i = 0; i < qs.length; i++) {
+      const q = qs[i];
+      const ph = (p * q.s + q.o) % 1;
+      ctx.fillStyle = rgba(color, (1 - ph) * 0.42);
+      ctx.fillText('?', q.x, bandY + bandH + 60 + ph * 300);
+    }
+    ctx.restore();
+  },
+
+  // 02 AI 诞生：节点网络汇聚 + 中心脉冲核心
+  birth: function (ctx, p, color) {
+    const nodes = cached('birth:n', function () {
+      const r = mulberry32(hashStr('birth'));
+      return Array.from({ length: 18 }, function (_, i) {
+        const a = i / 18 * 6.283;
+        const rad = 190 + (i % 3) * 70 + r() * 40;
+        return { x: Math.cos(a) * rad, y: Math.sin(a) * rad * 0.62 };
+      });
+    });
+    const edges = cached('birth:e', function () {
+      const r = mulberry32(hashStr('birth|e'));
+      const E = [];
+      for (let i = 0; i < nodes.length; i++) {
+        for (let k = 0; k < 2; k++) {
+          const j = (i + 1 + Math.floor(r() * 4)) % nodes.length;
+          if (j !== i) E.push({ a: i, b: j, o: r() });
+        }
+      }
+      return E;
+    });
+    for (let e = 0; e < edges.length; e++) {
+      const ed = edges[e];
+      const t = clamp((p * 1.25 - ed.o * 0.4) / 0.7, 0, 1);
+      if (t <= 0) continue;
+      const A = nodes[ed.a], B = nodes[ed.b];
+      ctx.strokeStyle = rgba(color, 0.30 * t); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(lerp(A.x, B.x, t), lerp(A.y, B.y, t)); ctx.stroke();
+    }
+    for (let i = 0; i < nodes.length; i++) {
+      const nd = nodes[i];
+      const ap = clamp((p - i * 0.02) / 0.4, 0, 1);
+      if (ap <= 0) continue;
+      ctx.fillStyle = rgba(color, 0.9);
+      ctx.shadowColor = color; ctx.shadowBlur = 12 * ap;
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, 5 * ap, 0, 6.283); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    const pulse = 0.6 + 0.4 * Math.sin(p * 6.283 * 2);
+    ctx.fillStyle = rgba(color, 0.9 * clamp(p * 1.6, 0, 1));
+    ctx.shadowColor = color; ctx.shadowBlur = 46 * pulse;
+    ctx.beginPath(); ctx.arc(0, 0, 40 * (0.7 + 0.3 * p) * (0.92 + 0.08 * pulse), 0, 6.283); ctx.fill();
+    ctx.shadowBlur = 0;
+  },
+
+  // 03 专家系统：自上而下生长的规则判定树 + IF/THEN 标签
+  rules: function (ctx, p, color) {
+    const levels = 4, spread = 820, dy = 118, topY = -170;
+    const T = cached('rules:tree', function () {
+      const arr = [];
+      for (let d = 0; d <= levels; d++) {
+        const cnt = Math.pow(2, d);
+        for (let i = 0; i < cnt; i++) {
+          const x = cnt === 1 ? 0 : (-spread / 2 + i * (spread / (cnt - 1)));
+          arr.push({ x: x, y: topY + d * dy, d: d, i: i });
+        }
+      }
+      return arr;
+    });
+    const at = function (d, i) { return T[d === 0 ? 0 : Math.pow(2, d) - 1 + i]; };
+    for (let d = 0; d < levels; d++) {
+      const t = clamp((p - d * 0.17) / 0.16, 0, 1);
+      if (t <= 0) continue;
+      const pc = Math.pow(2, d);
+      for (let i = 0; i < pc; i++) {
+        const P = at(d, i), C1 = at(d + 1, 2 * i), C2 = at(d + 1, 2 * i + 1);
+        ctx.strokeStyle = rgba(color, 0.3 * t); ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(lerp(P.x, C1.x, t), lerp(P.y, C1.y, t)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(lerp(P.x, C2.x, t), lerp(P.y, C2.y, t)); ctx.stroke();
+      }
+    }
+    for (let k = 0; k < T.length; k++) {
+      const nd = T[k];
+      const ap = clamp((p - nd.d * 0.17) / 0.16, 0, 1);
+      if (ap <= 0) continue;
+      const w = 46, h = 26;
+      ctx.fillStyle = rgba(color, 0.12 * ap);
+      ctx.strokeStyle = rgba(color, 0.85 * ap); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.rect(nd.x - w / 2, nd.y - h / 2, w, h); ctx.fill(); ctx.stroke();
+    }
+    // IF / THEN 标签
+    ctx.font = '600 24px ' + FONT_MONO;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const tags = cached('rules:tags', function () { const r = mulberry32(hashStr('rules|t')); return Array.from({ length: 6 }, function () { return { x: (r() - 0.5) * 1300, y: (r() - 0.5) * 620, o: r() }; }); });
+    for (let i = 0; i < tags.length; i++) {
+      const tg = tags[i];
+      const ph = (p * 0.6 + tg.o) % 1;
+      ctx.fillStyle = rgba(color, (1 - ph) * 0.28);
+      ctx.fillText(i % 2 ? 'THEN' : 'IF', tg.x, tg.y);
+    }
+  },
+
+  // 04 机器学习：数据散点 + 拟合曲线扫过
+  ml: function (ctx, p, color) {
+    const pts = cached('ml:pts', function () {
+      const r = mulberry32(hashStr('ml'));
+      return Array.from({ length: 110 }, function () {
+        const x = (r() - 0.5) * 1240;
+        const base = 150 * Math.sin((x / 620) * 1.3);
+        const cls = (x > 0 ? 1 : 0);
+        const y = base + (r() - 0.5) * (cls ? 120 : 340);
+        return { x: x, y: y, cls: cls };
+      });
+    });
+    const appear = clamp((p - 0.08) / 0.35, 0, 1);
+    for (let i = 0; i < pts.length; i++) {
+      const q = pts[i];
+      const ap = clamp(appear - i / pts.length * 0.3, 0, 1);
+      if (ap <= 0) continue;
+      ctx.fillStyle = q.cls ? rgba(color, 0.9 * ap) : ('rgba(244,239,230,' + (0.45 * ap) + ')');
+      ctx.beginPath(); ctx.arc(q.x, q.y, 4.5, 0, 6.283); ctx.fill();
+    }
+    // 拟合曲线
+    const t = easeOutCubic(clamp((p - 0.38) / 0.55, 0, 1));
+    if (t > 0) {
+      ctx.strokeStyle = rgba(color, 1); ctx.lineWidth = 4; ctx.lineCap = 'round';
+      ctx.beginPath();
+      const steps = 60;
+      for (let s = 0; s <= steps; s++) {
+        const u = s / steps;
+        const xx = -620 + 1240 * u * t;
+        const yy = 150 * Math.sin((xx / 620) * 1.3);
+        if (s === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+      ctx.fillStyle = rgba(color, 0.9);
+      ctx.shadowColor = color; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.arc(-620 + 1240 * t, 150 * Math.sin(((-620 + 1240 * t) / 620) * 1.3), 7, 0, 6.283); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+    // 坐标轴
+    ctx.strokeStyle = rgba(color, 0.25); ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-640, 330); ctx.lineTo(640, 330); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-640, 330); ctx.lineTo(-640, -330); ctx.stroke();
+  },
+
+  // 05 深度学习：多层神经网络 + 信号脉冲
+  deep: function (ctx, p, color) {
+    const layers = [4, 6, 6, 3], spacing = 300;
+    const nodes = cached('deep:pos', function () {
+      const arr = [];
+      for (let l = 0; l < layers.length; l++) {
+        const nn = layers[l];
+        const x = -spacing * (layers.length - 1) / 2 + l * spacing;
+        for (let i = 0; i < nn; i++) arr.push({ x: x, y: (i - (nn - 1) / 2) * 108, l: l, i: i });
+      }
+      return arr;
+    });
+    const byLayer = function (l) { return nodes.filter(function (n) { return n.l === l; }); };
+    for (let l = 0; l < layers.length - 1; l++) {
+      const ap = clamp((p - l * 0.15) / 0.5, 0, 1);
+      if (ap <= 0) continue;
+      const A = byLayer(l), B = byLayer(l + 1);
+      ctx.strokeStyle = rgba(color, 0.14 * ap); ctx.lineWidth = 1.2;
+      for (let a = 0; a < A.length; a++) for (let b = 0; b < B.length; b++) {
+        ctx.beginPath(); ctx.moveTo(A[a].x, A[a].y); ctx.lineTo(B[b].x, B[b].y); ctx.stroke();
+      }
+    }
+    for (let k = 0; k < nodes.length; k++) {
+      const nd = nodes[k];
+      const ap = clamp((p - nd.l * 0.15) / 0.4, 0, 1);
+      if (ap <= 0) continue;
+      const glow = 0.5 + 0.5 * Math.sin(p * 6.283 * 1.5 - nd.l * 0.8 - nd.i * 0.4);
+      ctx.fillStyle = rgba(color, 0.3 + 0.65 * glow * ap);
+      ctx.shadowColor = color; ctx.shadowBlur = 16 * glow * ap;
+      ctx.beginPath(); ctx.arc(nd.x, nd.y, 9, 0, 6.283); ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  },
+
+  // 06 大模型：注意力矩阵 + token 序列 + 注意力弧线
+  transformer: function (ctx, p, color) {
+    const n = 8, gs = 56, gx0 = -n * gs / 2, gy0 = -300, ty = 150, sw = 150;
+    const weights = cached('tf:wv', function () {
+      const rr = mulberry32(hashStr('tf|wv'));
+      const w = [];
+      for (let i = 0; i < n; i++) { const row = []; for (let j = 0; j < n; j++) row.push(rr()); w.push(row); }
+      return w;
+    });
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const act = clamp((p - (i + j) / (2 * n) * 0.75) / 0.3, 0, 1);
+      if (act <= 0) continue;
+      ctx.fillStyle = rgba(color, 0.07 + 0.5 * weights[i][j] * act);
+      ctx.fillRect(gx0 + j * gs + 2, gy0 + i * gs + 2, gs - 4, gs - 4);
+    }
+    ctx.lineWidth = 2;
+    for (let i = 0; i < n; i++) {
+      const A = (i - (n - 1) / 2) * sw;
+      for (let j = 0; j < n; j++) {
+        if (i === j) continue;
+        const w = weights[i][j];
+        if (w < 0.55) continue;
+        const act = clamp((p - 0.4 - (i / n) * 0.2) / 0.3, 0, 1);
+        if (act <= 0) continue;
+        const Bx = (j - (n - 1) / 2) * sw;
+        ctx.strokeStyle = rgba(color, 0.5 * act * w);
+        ctx.beginPath(); ctx.moveTo(A, ty - 22);
+        ctx.quadraticCurveTo((A + Bx) / 2, ty - 40 - Math.abs(A - Bx) * 0.28, Bx, ty - 22);
+        ctx.stroke();
+      }
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '600 30px ' + FONT_MONO;
+    for (let i = 0; i < n; i++) {
+      const x = (i - (n - 1) / 2) * sw;
+      const ap = clamp((p - i * 0.03) / 0.3, 0, 1);
+      if (ap <= 0) continue;
+      ctx.fillStyle = rgba(color, 0.12 * ap);
+      ctx.strokeStyle = rgba(color, 0.8 * ap); ctx.lineWidth = 2;
+      roundRect(ctx, x - 34, ty - 22, 68, 44, 8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(244,239,230,' + (0.95 * ap) + ')';
+      ctx.fillText(String(i + 1), x, ty + 2);
+    }
+  },
+
+  // 07 生成式未来：对话气泡 + 神经网络核心 + 上升光束
+  generative: function (ctx, p, color) {
+    const pulse = 0.6 + 0.4 * Math.sin(p * 6.283 * 2);
+    ctx.fillStyle = rgba(color, 0.9);
+    ctx.shadowColor = color; ctx.shadowBlur = 52 * pulse;
+    ctx.beginPath(); ctx.arc(0, 40, 58 * (0.85 + 0.15 * pulse), 0, 6.283); ctx.fill();
+    ctx.shadowBlur = 0;
+    const parts = cached('gen:p', function () {
+      const r = mulberry32(hashStr('gen|p'));
+      return Array.from({ length: 44 }, function () { return { a: r() * 6.283, rad: 120 + r() * 430, o: r(), s: 1 + r() * 2.5, sp: 0.4 + r() }; });
+    });
+    for (let i = 0; i < parts.length; i++) {
+      const q = parts[i];
+      const ang = q.a + p * 6.283 * q.sp * 0.3;
+      const rr = q.rad * (0.45 + 0.55 * p);
+      ctx.fillStyle = rgba(color, 0.8);
+      ctx.beginPath(); ctx.arc(Math.cos(ang) * rr, 40 + Math.sin(ang) * rr * 0.62, q.s, 0, 6.283); ctx.fill();
+    }
+    const h = easeOutCubic(clamp((p - 0.1) / 0.7, 0, 1));
+    const beam = ctx.createLinearGradient(0, 40, 0, 40 - 640 * h);
+    beam.addColorStop(0, rgba(color, 0)); beam.addColorStop(1, rgba(color, 0.42));
+    ctx.fillStyle = beam; ctx.fillRect(-5, 40 - 640 * h, 10, 640 * h);
+    // 对话气泡
+    const bub = function (x, y, ap, right) {
+      if (ap <= 0) return;
+      ctx.save(); ctx.globalAlpha *= ap;
+      const w = 300, hh = 110;
+      ctx.fillStyle = rgba(color, 0.12);
+      ctx.strokeStyle = rgba(color, 0.75); ctx.lineWidth = 2;
+      roundRect(ctx, x - w / 2, y - hh / 2, w, hh, 18); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + (right ? w / 2 - 34 : -w / 2 + 34), y + hh / 2);
+      ctx.lineTo(x + (right ? w / 2 : -w / 2), y + hh / 2 + 26);
+      ctx.lineTo(x + (right ? w / 2 - 66 : -w / 2 + 66), y + hh / 2);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = rgba(color, 0.5); ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2 + 26, y - 18 + i * 18);
+        ctx.lineTo(x + w / 2 - 26 - (i === 2 ? 70 : 0), y - 18 + i * 18);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+    bub(-470, -60, clamp((p - 0.15) / 0.4, 0, 1), false);
+    bub(470, 110, clamp((p - 0.45) / 0.4, 0, 1), true);
+  },
+};
+
+// ===========================================================================
+// 背景 / HUD / 时间线细丝
+// ===========================================================================
+function drawBackground(ctx, eraColor) {
+  ctx.fillStyle = '#0B0C10';
+  ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(W * 0.5, H * 0.36, 60, W * 0.5, H * 0.36, H * 0.9);
+  g.addColorStop(0, rgba(eraColor, 0.10));
+  g.addColorStop(0.6, rgba(eraColor, 0.02));
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.028)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 120) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 120) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  const rn = mulberry32(hashStr('grain'));
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i < 420; i++) { ctx.fillRect(rn() * W, rn() * H, 1.2, 1.2); }
+  const v = ctx.createRadialGradient(W * 0.5, H * 0.45, H * 0.25, W * 0.5, H * 0.45, H * 0.85);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,0.55)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+
+function setLetterSpacing(ctx, v) {
+  try { if ('letterSpacing' in ctx) ctx.letterSpacing = v; } catch (e) { /* 忽略 */ }
+}
+
+function drawTitleBlock(ctx, beat, color, alpha, dy) {
+  if (alpha <= 0.001) return;
+  ctx.save();
+  ctx.globalAlpha *= alpha;
+  ctx.translate(130, dy);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 26px ' + FONT_MONO;
+  ctx.fillStyle = rgba(color, 0.9);
+  ctx.fillText(beat.index + ' / 07', 0, 792);
+  ctx.strokeStyle = rgba(color, 0.5); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, 806); ctx.lineTo(64, 806); ctx.stroke();
+  ctx.font = '700 84px ' + FONT_DISPLAY;
+  ctx.fillStyle = 'rgba(244,239,230,0.97)';
+  setLetterSpacing(ctx, '6px');
+  ctx.fillText(beat.title, 2, 884);
+  setLetterSpacing(ctx, '0px');
+  ctx.font = '400 30px ' + FONT_BODY;
+  ctx.fillStyle = 'rgba(244,239,230,0.62)';
+  ctx.fillText(beat.caption, 2, 930);
+  ctx.restore();
+}
+
+function drawFilament(ctx, frame, color) {
+  const x0 = 130, x1 = W - 130, y = 1012;
+  const gp = frame / (TOTAL_FRAMES - 1);
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.strokeStyle = 'rgba(244,239,230,0.14)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+  const cx = lerp(x0, x1, gp);
+  const pg = ctx.createLinearGradient(x0, 0, Math.max(cx, x0 + 1), 0);
+  pg.addColorStop(0, rgba(color, 0.35));
+  pg.addColorStop(1, rgba(color, 1));
+  ctx.strokeStyle = pg; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(cx, y); ctx.stroke();
+  for (let i = 0; i < BEAT_FRAMES.length; i++) {
+    const bf = BEAT_FRAMES[i];
+    const nx = lerp(x0, x1, bf.startF / (TOTAL_FRAMES - 1));
+    const on = frame >= bf.startF;
+    ctx.fillStyle = on ? rgba(bf.color, 1) : 'rgba(244,239,230,0.25)';
+    ctx.beginPath(); ctx.arc(nx, y, on ? 7 : 5, 0, 6.283); ctx.fill();
+    ctx.font = '500 20px ' + FONT_MONO;
+    ctx.fillStyle = on ? rgba(bf.color, 0.95) : 'rgba(244,239,230,0.3)';
+    ctx.textAlign = 'center';
+    ctx.fillText(bf.index, nx, y - 22);
+    ctx.textAlign = 'left';
+  }
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = color; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(cx, y, 6, 0, 6.283); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawUI(ctx, frame, tl, eraColor, curA, prevA) {
+  const p = clamp(tl.local, 0, 1);
+  ctx.save();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 26px ' + FONT_UTIL;
+  ctx.fillStyle = 'rgba(244,239,230,0.55)';
+  ctx.fillText('A HISTORY OF AI', 130, 96);
+  ctx.font = '600 22px ' + FONT_MONO;
+  ctx.fillStyle = rgba(eraColor, 0.75);
+  ctx.fillText(fmtTime(frame / FPS) + '  /  ' + fmtTime(DURATION_S), 130, 132);
+  ctx.restore();
+  ctx.save();
+  ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 30px ' + FONT_DISPLAY;
+  ctx.fillStyle = 'rgba(244,239,230,0.8)';
+  setLetterSpacing(ctx, '4px');
+  ctx.fillText('AI 的发展史', W - 130, 100);
+  setLetterSpacing(ctx, '0px');
+  ctx.restore();
+  const reveal = smoothstep(clamp(p / 0.10, 0, 1));
+  drawTitleBlock(ctx, tl.beat, eraColor, curA * reveal, 60 * (1 - reveal));
+  if (prevA > 0.001 && tl.prev) drawTitleBlock(ctx, tl.prev, tl.prev.color, prevA, 0);
+  drawFilament(ctx, frame, eraColor);
+}
+
+// ---- 主渲染：renderFrame(ctx, frame) —— 纯函数（I2）----------------------
+function renderFrame(ctx, frame) {
+  const fr = clamp(Math.round(frame), 0, TOTAL_FRAMES - 1);
+  const tl = timelineAt(fr);
+  const p = clamp(tl.local, 0, 1);
+  const localF = fr - tl.beat.startF;
+  let curA = 1, prevA = 0;
+  if (tl.prev && localF < CROSS) { curA = smoothstep(localF / CROSS); prevA = 1 - curA; }
+  let eraColor = tl.beat.color;
+  if (tl.prev && localF < CROSS) eraColor = lerpColor(tl.prev.color, tl.beat.color, smoothstep(localF / CROSS));
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx, eraColor);
+  if (prevA > 0.001 && tl.prev) {
+    const pf = SCENES[tl.prev.scene];
+    ctx.save();
+    ctx.translate(W / 2, SCENE_CY);
+    ctx.globalAlpha = prevA;
+    pf(ctx, 1, tl.prev.color);
+    ctx.restore();
+  }
+  const fn = SCENES[tl.beat.scene];
+  ctx.save();
+  ctx.translate(W / 2, SCENE_CY);
+  ctx.globalAlpha = curA;
+  fn(ctx, p, tl.beat.color);
+  ctx.restore();
+  drawUI(ctx, fr, tl, eraColor, curA, prevA);
+  ctx.restore();
+  return tl;
+}
+
+
+// ui.js — 浏览器端：控件、播放循环、逐拍导航、自检
+// 与 core.mjs 同处一个模块作用域（构建时合并），直接引用其中的常量与函数。
+
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const playBtn = document.getElementById('play');
+const scrub = document.getElementById('scrub');
+const timeEl = document.getElementById('time');
+const restartBtn = document.getElementById('restart');
+const chipsEl = document.getElementById('chips');
+
+let playing = false;
+let frame = 0;
+let lastTs = 0;
+let rafId = 0;
+let hudBeat = -1;
+
+function draw() { renderFrame(ctx, frame); }
+
+function updateHud(force) {
+  const tl = timelineAt(frame);
+  timeEl.textContent = fmtTime(frame / FPS) + ' / ' + fmtTime(DURATION_S);
+  scrub.value = String(frame);
+  if (force || tl.i !== hudBeat) {
+    hudBeat = tl.i;
+    const kids = chipsEl.children;
+    for (let i = 0; i < kids.length; i++) kids[i].classList.toggle('on', i === tl.i);
+  }
+}
+
+function setFrame(f, force) {
+  frame = clamp(Math.round(f), 0, TOTAL_FRAMES - 1);
+  draw();
+  updateHud(force);
+}
+
+function updatePlayBtn() {
+  playBtn.setAttribute('aria-label', playing ? '暂停' : '播放');
+  playBtn.innerHTML = playing
+    ? '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+    : '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+}
+
+function loop(ts) {
+  if (!playing) return;
+  if (!lastTs) lastTs = ts;
+  const dt = (ts - lastTs) / 1000;
+  lastTs = ts;
+  frame += dt * FPS;
+  if (frame >= TOTAL_FRAMES - 1) {
+    frame = TOTAL_FRAMES - 1;
+    draw(); updateHud(true);
+    playing = false; updatePlayBtn();
+    return;
+  }
+  draw(); updateHud(false);
+  rafId = requestAnimationFrame(loop);
+}
+
+function play() {
+  if (playing) return;
+  if (frame >= TOTAL_FRAMES - 1) frame = 0; // 播到尾再按 -> 从头
+  playing = true;
+  lastTs = 0;
+  updatePlayBtn();
+  rafId = requestAnimationFrame(loop);
+}
+
+function pause() {
+  playing = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = 0;
+  updatePlayBtn();
+}
+
+function toggle() { playing ? pause() : play(); }
+
+// ---- 事件绑定 -------------------------------------------------------------
+playBtn.addEventListener('click', toggle);
+restartBtn.addEventListener('click', function () { pause(); setFrame(0, true); });
+scrub.addEventListener('input', function () { pause(); setFrame(+scrub.value, true); });
+canvas.addEventListener('click', toggle);
+
+document.addEventListener('keydown', function (e) {
+  if (e.code === 'Space') { e.preventDefault(); toggle(); }
+  else if (e.code === 'ArrowRight') { e.preventDefault(); pause(); setFrame(frame + (e.shiftKey ? FPS : 1), true); }
+  else if (e.code === 'ArrowLeft') { e.preventDefault(); pause(); setFrame(frame - (e.shiftKey ? FPS : 1), true); }
+  else if (e.code === 'Home') { e.preventDefault(); pause(); setFrame(0, true); }
+  else if (e.code === 'End') { e.preventDefault(); pause(); setFrame(TOTAL_FRAMES - 1, true); }
+  else if (e.code === 'KeyR') { pause(); setFrame(0, true); }
+});
+
+// ---- 逐拍导航 chips（数据来自 BEAT_FRAMES，唯一真相）----------------------
+(function buildChips() {
+  for (let i = 0; i < BEAT_FRAMES.length; i++) {
+    const bf = BEAT_FRAMES[i];
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.dataset.i = String(i);
+    btn.innerHTML = '<span class="dot" style="background:' + bf.color + '"></span>' +
+      '<span class="n">' + bf.index + '</span>' +
+      '<span class="t">' + bf.title + '</span>';
+    btn.addEventListener('click', function () { pause(); setFrame(bf.startF, true); });
+    chipsEl.appendChild(btn);
+  }
+})();
+
+// ---- 初始化：字体就绪后重绘一帧（readiness gate）----------------------
+setFrame(0, true);
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(function () { setFrame(frame, true); });
+}
+
+// ---- 对外接口：供逐帧截图 / 自检（不参与交互）-------------------------
+window.__HH = {
+  W: W, H: H, FPS: FPS, TOTAL_FRAMES: TOTAL_FRAMES, BEAT_FRAMES: BEAT_FRAMES,
+  seek: function (f) { pause(); setFrame(f, true); },
+  at: function (f) { renderFrame(ctx, f); },
+  // 确定性自检：同帧渲染两次比较像素；返回结构化结果
+  selfTest: function () {
+    const samples = [0, CROSS, 180, 400, 675, 900, 1200, TOTAL_FRAMES - 1];
+    const report = { ok: true, frames: [], errors: [] };
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    const tc = tmp.getContext('2d');
+    for (let i = 0; i < samples.length; i++) {
+      const f = samples[i];
+      renderFrame(ctx, f);
+      const a = ctx.getImageData(0, 0, W, H).data;
+      renderFrame(tc, f);
+      const b = tc.getImageData(0, 0, W, H).data;
+      let diff = 0, nonBlank = 0;
+      for (let k = 0; k < a.length; k += 4) {
+        if (a[k] !== b[k] || a[k + 1] !== b[k + 1] || a[k + 2] !== b[k + 2]) diff++;
+        if (a[k] + a[k + 1] + a[k + 2] > 24) nonBlank++;
+      }
+      const entry = { frame: f, pixelDiff: diff, nonBlankPx: nonBlank, deterministic: diff === 0, nonBlank: nonBlank > 1000 };
+      if (!entry.deterministic) { report.ok = false; report.errors.push('frame ' + f + ' not deterministic'); }
+      report.frames.push(entry);
+    }
+    renderFrame(ctx, frame);
+    return report;
+  },
+};
+
+</script>
+</body>
+</html>
