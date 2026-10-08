@@ -1,0 +1,24 @@
+{
+  "name": "deterministic-motion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frame-pure, deterministic HTML/Canvas animation engine — every frame is a pure function of the frame number. Demo: a 45-second history of humanity.",
+  "keywords": [
+    "deterministic",
+    "animation",
+    "canvas",
+    "video",
+    "motion-graphics",
+    "frame-pure",
+    "rendering"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "test": "node src/test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
