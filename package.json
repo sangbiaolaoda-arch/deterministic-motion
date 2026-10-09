@@ -16,7 +16,13 @@
   "license": "MIT",
   "scripts": {
     "build": "node src/build.mjs",
-    "test": "node src/test.mjs"
+    "test": "node scripts/check-determinism.mjs src && node src/test.mjs",
+    "lint:determinism": "node scripts/check-determinism.mjs src",
+    "golden": "node scripts/golden-frames.mjs",
+    "golden:update": "node scripts/golden-frames.mjs --update"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^0.1.53"
   },
   "engines": {
     "node": ">=18"
