@@ -69,6 +69,8 @@ export function validatePlan(plan) {
       const tr = s[side];
       if (!tr) continue;
       if (!TRANSITION_TYPES.includes(tr.type)) E(`${sp}.${side}.type`, `未知转场类型 ${tr.type}`);
+      // 声明必须与实现一致：渲染器只实现 cut/dissolve，morph 不得被接受。
+      if (tr.type === 'morph') E(`${sp}.${side}.type`, 'morph 尚未实现（渲染器仅支持 cut/dissolve）——声明必须与实现一致');
       if (tr.durF != null && (!Number.isInteger(tr.durF) || tr.durF < 0)) E(`${sp}.${side}.durF`, 'durF 必须是非负整数');
       if (tr.ease && !EASE_NAMES.includes(tr.ease)) E(`${sp}.${side}.ease`, `未知 ease ${tr.ease}`);
     }
@@ -87,9 +89,17 @@ export function validatePlan(plan) {
       if (el.layout && typeof el.layout.z !== 'number') Wn(`${ep}.layout.z`, '缺少 z（默认 0）');
       if (el.visible) {
         const v = el.visible;
-        if (v.startF != null && (v.startF < s.range.startF || v.startF > s.range.endF)) E(`${ep}.visible`, 'visible.startF 越出场景范围');
-        if (v.endF != null && (v.endF < s.range.startF || v.endF > s.range.endF)) E(`${ep}.visible`, 'visible.endF 越出场景范围');
-        if (v.startF != null && v.endF != null && v.endF <= v.startF) E(`${ep}.visible`, 'visible 范围为空');
+        const span = s.range.endF - s.range.startF;
+        // 单一约定：可见窗口用「场景局部帧」，与 enter/exit/轨道关键帧一致。
+        if (v.startF != null || v.endF != null) {
+          E(`${ep}.visible`, 'visible 请使用场景局部帧 startLocalF/endLocalF（绝对帧 startF/endF 已废弃，避免声明/应用分叉）');
+        }
+        for (const key of ['startLocalF', 'endLocalF']) {
+          if (v[key] != null && (!Number.isInteger(v[key]) || v[key] < 0 || v[key] > span)) {
+            E(`${ep}.visible.${key}`, `${key} 必须是不越出 [0, ${span}] 的整数`);
+          }
+        }
+        if (v.startLocalF != null && v.endLocalF != null && v.endLocalF <= v.startLocalF) E(`${ep}.visible`, 'visible 范围为空');
       }
       // 入场 / 离场
       for (const side of ['enter', 'exit']) {
@@ -125,6 +135,21 @@ export function validatePlan(plan) {
       }
     }
   });
+
+  // 转场一致性：相邻场景的「出」与「入」必须一致——同为 cut，或同为 dissolve 且 durF 相同。
+  // 渲染器以「入」为准；若两侧声明冲突，说明计划自相矛盾，必须显式报错。
+  for (let i = 0; i + 1 < scenes.length; i++) {
+    const a = scenes[i], b = scenes[i + 1];
+    const ot = a.transitionOut && a.transitionOut.type ? a.transitionOut.type : 'cut';
+    const it = b.transitionIn && b.transitionIn.type ? b.transitionIn.type : 'cut';
+    if (ot !== it) {
+      E(`scenes[${i}].transitionOut`, `与下一场景 ${b.id} 的 transitionIn 不一致（${ot} vs ${it}）——边界转场两侧必须一致`);
+    } else if (ot !== 'cut') {
+      const od = a.transitionOut && a.transitionOut.durF != null ? a.transitionOut.durF : 0;
+      const idur = b.transitionIn && b.transitionIn.durF != null ? b.transitionIn.durF : 0;
+      if (od !== idur) E(`scenes[${i}].transitionOut`, `与下一场景 ${b.id} 的 transitionIn 时长不一致（${od} vs ${idur}）`);
+    }
+  }
 
   // 覆盖连续性
   ranges.sort((a, b) => a.startF - b.startF);
