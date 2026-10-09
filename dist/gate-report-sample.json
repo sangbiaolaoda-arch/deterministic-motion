@@ -1,0 +1,957 @@
+{
+  "film": "sample-12s",
+  "generatedBy": "lab/gates.mjs",
+  "ok": true,
+  "counts": {
+    "D": 1,
+    "V": 48,
+    "M": 22,
+    "H": 2
+  },
+  "checks": [
+    {
+      "cat": "D",
+      "id": "D-1",
+      "ok": true,
+      "msg": "帧 120 两次渲染像素一致",
+      "frame": 120
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s1-intro-首帧",
+      "ok": true,
+      "msg": "s1-intro 首帧(f=0) 非空白像素 921600",
+      "scene": "s1-intro",
+      "frame": 0,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-under-f0",
+      "ok": true,
+      "msg": "under(f=0) 在安全边距内 [x=640,y=428,w=0,h=4]",
+      "element": "under",
+      "frame": 0,
+      "box": {
+        "id": "under",
+        "kind": "line",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 640,
+        "y": 428,
+        "w": 0,
+        "h": 4
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-dot-f0",
+      "ok": true,
+      "msg": "dot(f=0) 在安全边距内 [x=187,y=187,w=26,h=26]",
+      "element": "dot",
+      "frame": 0,
+      "box": {
+        "id": "dot",
+        "kind": "disc",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 187,
+        "y": 187,
+        "w": 26,
+        "h": 26
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s1-intro-中帧",
+      "ok": true,
+      "msg": "s1-intro 中帧(f=60) 非空白像素 921600",
+      "scene": "s1-intro",
+      "frame": 60,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-title-f60",
+      "ok": true,
+      "msg": "title(f=60) 在安全边距内 [x=364,y=312,w=552,h=95]",
+      "element": "title",
+      "frame": 60,
+      "box": {
+        "id": "title",
+        "kind": "label",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 364.2033659731811,
+        "y": 312.265967187666,
+        "w": 551.5932680536378,
+        "h": 95.46806562466807
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-under-f60",
+      "ok": true,
+      "msg": "under(f=60) 在安全边距内 [x=417,y=432,w=446,h=4]",
+      "element": "under",
+      "frame": 60,
+      "box": {
+        "id": "under",
+        "kind": "line",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 417.2411802091078,
+        "y": 432.1314273608603,
+        "w": 445.51763958178435,
+        "h": 4.2430251388741365
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-dot-f60",
+      "ok": true,
+      "msg": "dot(f=60) 在安全边距内 [x=836,y=431,w=28,h=28]",
+      "element": "dot",
+      "frame": 60,
+      "box": {
+        "id": "dot",
+        "kind": "disc",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 835.7095345305695,
+        "y": 431.0706710761418,
+        "w": 27.579663402681888,
+        "h": 27.579663402681888
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s1-intro-末帧",
+      "ok": true,
+      "msg": "s1-intro 末帧(f=119) 非空白像素 921600",
+      "scene": "s1-intro",
+      "frame": 119,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-title-f119",
+      "ok": true,
+      "msg": "title(f=119) 在安全边距内 [x=349,y=310,w=582,h=101]",
+      "element": "title",
+      "frame": 119,
+      "box": {
+        "id": "title",
+        "kind": "label",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 348.79999999999995,
+        "y": 309.6,
+        "w": 582.4000000000001,
+        "h": 100.80000000000001
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-under-f119",
+      "ok": true,
+      "msg": "under(f=119) 在安全边距内 [x=405,y=436,w=470,h=4]",
+      "element": "under",
+      "frame": 119,
+      "box": {
+        "id": "under",
+        "kind": "line",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 404.79999999999995,
+        "y": 436.15999999999997,
+        "w": 470.40000000000003,
+        "h": 4.48
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-dot-f119",
+      "ok": true,
+      "msg": "dot(f=119) 在安全边距内 [x=1040,y=278,w=29,h=29]",
+      "element": "dot",
+      "frame": 119,
+      "box": {
+        "id": "dot",
+        "kind": "disc",
+        "sceneId": "s1-intro",
+        "opacity": 1,
+        "x": 1039.8400000000001,
+        "y": 278.24,
+        "w": 29.120000000000005,
+        "h": 29.120000000000005
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-clip-title",
+      "ok": true,
+      "msg": "title 文本实测宽 453.0 ≤ 容器宽 520",
+      "element": "title",
+      "textWidth": 453.010009765625,
+      "boxWidth": 520
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s2-bars-首帧",
+      "ok": true,
+      "msg": "s2-bars 首帧(f=120) 非空白像素 921600",
+      "scene": "s2-bars",
+      "frame": 120,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b1-f120",
+      "ok": true,
+      "msg": "b1(f=120) 在安全边距内 [x=480,y=650,w=120,h=0]",
+      "element": "b1",
+      "frame": 120,
+      "box": {
+        "id": "b1",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 480,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b2-f120",
+      "ok": true,
+      "msg": "b2(f=120) 在安全边距内 [x=660,y=650,w=120,h=0]",
+      "element": "b2",
+      "frame": 120,
+      "box": {
+        "id": "b2",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 660,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b3-f120",
+      "ok": true,
+      "msg": "b3(f=120) 在安全边距内 [x=840,y=650,w=120,h=0]",
+      "element": "b3",
+      "frame": 120,
+      "box": {
+        "id": "b3",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 840,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-baseline-f120",
+      "ok": true,
+      "msg": "baseline(f=120) 在安全边距内 [x=400,y=599,w=640,h=3]",
+      "element": "baseline",
+      "frame": 120,
+      "box": {
+        "id": "baseline",
+        "kind": "line",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 400,
+        "y": 598.5,
+        "w": 640,
+        "h": 3
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s2-bars-中帧",
+      "ok": true,
+      "msg": "s2-bars 中帧(f=185) 非空白像素 921600",
+      "scene": "s2-bars",
+      "frame": 185,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b1-f185",
+      "ok": true,
+      "msg": "b1(f=185) 在安全边距内 [x=398,y=330,w=120,h=320]",
+      "element": "b1",
+      "frame": 185,
+      "box": {
+        "id": "b1",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 398.15391982723156,
+        "y": 330.1851851851852,
+        "w": 120,
+        "h": 319.8148148148148
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b2-f185",
+      "ok": true,
+      "msg": "b2(f=185) 在安全边距内 [x=578,y=330,w=120,h=320]",
+      "element": "b2",
+      "frame": 185,
+      "box": {
+        "id": "b2",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 578.1539198272316,
+        "y": 330.1851851851852,
+        "w": 120,
+        "h": 319.8148148148148
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b3-f185",
+      "ok": true,
+      "msg": "b3(f=185) 在安全边距内 [x=758,y=330,w=120,h=320]",
+      "element": "b3",
+      "frame": 185,
+      "box": {
+        "id": "b3",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 758.1539198272316,
+        "y": 330.1851851851852,
+        "w": 120,
+        "h": 319.8148148148148
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-baseline-f185",
+      "ok": true,
+      "msg": "baseline(f=185) 在安全边距内 [x=318,y=599,w=640,h=3]",
+      "element": "baseline",
+      "frame": 185,
+      "box": {
+        "id": "baseline",
+        "kind": "line",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 318.15391982723156,
+        "y": 598.5,
+        "w": 640,
+        "h": 3
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s2-bars-末帧",
+      "ok": true,
+      "msg": "s2-bars 末帧(f=249) 非空白像素 921600",
+      "scene": "s2-bars",
+      "frame": 249,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b1-f249",
+      "ok": true,
+      "msg": "b1(f=249) 在安全边距内 [x=320,y=330,w=120,h=320]",
+      "element": "b1",
+      "frame": 249,
+      "box": {
+        "id": "b1",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 320,
+        "y": 330,
+        "w": 120,
+        "h": 320
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b2-f249",
+      "ok": true,
+      "msg": "b2(f=249) 在安全边距内 [x=500,y=330,w=120,h=320]",
+      "element": "b2",
+      "frame": 249,
+      "box": {
+        "id": "b2",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 500,
+        "y": 330,
+        "w": 120,
+        "h": 320
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b3-f249",
+      "ok": true,
+      "msg": "b3(f=249) 在安全边距内 [x=680,y=330,w=120,h=320]",
+      "element": "b3",
+      "frame": 249,
+      "box": {
+        "id": "b3",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 680,
+        "y": 330,
+        "w": 120,
+        "h": 320
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-baseline-f249",
+      "ok": true,
+      "msg": "baseline(f=249) 在安全边距内 [x=240,y=599,w=640,h=3]",
+      "element": "baseline",
+      "frame": 249,
+      "box": {
+        "id": "baseline",
+        "kind": "line",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 240,
+        "y": 598.5,
+        "w": 640,
+        "h": 3
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s2-bars-入点后 1 帧",
+      "ok": true,
+      "msg": "s2-bars 入点后 1 帧(f=121) 非空白像素 921600",
+      "scene": "s2-bars",
+      "frame": 121,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b1-f121",
+      "ok": true,
+      "msg": "b1(f=121) 在安全边距内 [x=480,y=650,w=120,h=0]",
+      "element": "b1",
+      "frame": 121,
+      "box": {
+        "id": "b1",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 479.9997018664558,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b2-f121",
+      "ok": true,
+      "msg": "b2(f=121) 在安全边距内 [x=660,y=650,w=120,h=0]",
+      "element": "b2",
+      "frame": 121,
+      "box": {
+        "id": "b2",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 659.9997018664558,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-b3-f121",
+      "ok": true,
+      "msg": "b3(f=121) 在安全边距内 [x=840,y=650,w=120,h=0]",
+      "element": "b3",
+      "frame": 121,
+      "box": {
+        "id": "b3",
+        "kind": "bar",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 839.9997018664558,
+        "y": 650,
+        "w": 120,
+        "h": 0
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-baseline-f121",
+      "ok": true,
+      "msg": "baseline(f=121) 在安全边距内 [x=400,y=599,w=640,h=3]",
+      "element": "baseline",
+      "frame": 121,
+      "box": {
+        "id": "baseline",
+        "kind": "line",
+        "sceneId": "s2-bars",
+        "opacity": 1,
+        "x": 399.9997018664558,
+        "y": 598.5,
+        "w": 640,
+        "h": 3
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s3-outro-首帧",
+      "ok": true,
+      "msg": "s3-outro 首帧(f=250) 非空白像素 921600",
+      "scene": "s3-outro",
+      "frame": 250,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-ring-f250",
+      "ok": true,
+      "msg": "ring(f=250) 在安全边距内 [x=543,y=241,w=194,h=194]",
+      "element": "ring",
+      "frame": 250,
+      "box": {
+        "id": "ring",
+        "kind": "ring",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 543.2,
+        "y": 241.2,
+        "w": 193.60000000000002,
+        "h": 193.60000000000002
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-pointer-f250",
+      "ok": true,
+      "msg": "pointer(f=250) 在安全边距内 [x=618,y=168,w=44,h=44]",
+      "element": "pointer",
+      "frame": 250,
+      "box": {
+        "id": "pointer",
+        "kind": "tri",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 618,
+        "y": 167.5,
+        "w": 44,
+        "h": 44
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s3-outro-中帧",
+      "ok": true,
+      "msg": "s3-outro 中帧(f=305) 非空白像素 921600",
+      "scene": "s3-outro",
+      "frame": 305,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-ring-f305",
+      "ok": true,
+      "msg": "ring(f=305) 在安全边距内 [x=525,y=224,w=231,h=231]",
+      "element": "ring",
+      "frame": 305,
+      "box": {
+        "id": "ring",
+        "kind": "ring",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 524.5756859498899,
+        "y": 223.5894470316881,
+        "w": 230.84862810022017,
+        "h": 230.84862810022017
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-pointer-f305",
+      "ok": true,
+      "msg": "pointer(f=305) 在安全边距内 [x=619,y=134,w=42,h=42]",
+      "element": "pointer",
+      "frame": 305,
+      "box": {
+        "id": "pointer",
+        "kind": "tri",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 619.0137610817982,
+        "y": 134.3979316293303,
+        "w": 41.97247783640367,
+        "h": 41.97247783640367
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-caption-f305",
+      "ok": true,
+      "msg": "caption(f=305) 在安全边距内 [x=399,y=544,w=483,h=52]",
+      "element": "caption",
+      "frame": 305,
+      "box": {
+        "id": "caption",
+        "kind": "label",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 398.6582524406789,
+        "y": 543.6295905342661,
+        "w": 482.68349511864216,
+        "h": 52.46559729550459
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s3-outro-末帧",
+      "ok": true,
+      "msg": "s3-outro 末帧(f=359) 非空白像素 921600",
+      "scene": "s3-outro",
+      "frame": 359,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-ring-f359",
+      "ok": true,
+      "msg": "ring(f=359) 在安全边距内 [x=530,y=230,w=220,h=220]",
+      "element": "ring",
+      "frame": 359,
+      "box": {
+        "id": "ring",
+        "kind": "ring",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 530,
+        "y": 230,
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-pointer-f359",
+      "ok": true,
+      "msg": "pointer(f=359) 在安全边距内 [x=620,y=185,w=40,h=40]",
+      "element": "pointer",
+      "frame": 359,
+      "box": {
+        "id": "pointer",
+        "kind": "tri",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 620,
+        "y": 185,
+        "w": 40,
+        "h": 40
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-caption-f359",
+      "ok": true,
+      "msg": "caption(f=359) 在安全边距内 [x=410,y=535,w=460,h=50]",
+      "element": "caption",
+      "frame": 359,
+      "box": {
+        "id": "caption",
+        "kind": "label",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 410,
+        "y": 535,
+        "w": 460,
+        "h": 50
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-blank-s3-outro-入点后 1 帧",
+      "ok": true,
+      "msg": "s3-outro 入点后 1 帧(f=251) 非空白像素 921600",
+      "scene": "s3-outro",
+      "frame": 251,
+      "nonBlankPx": 921600
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-ring-f251",
+      "ok": true,
+      "msg": "ring(f=251) 在安全边距内 [x=541,y=239,w=197,h=197]",
+      "element": "ring",
+      "frame": 251,
+      "box": {
+        "id": "ring",
+        "kind": "ring",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 541.4322457015104,
+        "y": 239.43274762077237,
+        "w": 197.1355085969793,
+        "h": 197.1355085969793
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-pointer-f251",
+      "ok": true,
+      "msg": "pointer(f=251) 在安全边距内 [x=618,y=168,w=44,h=44]",
+      "element": "pointer",
+      "frame": 251,
+      "box": {
+        "id": "pointer",
+        "kind": "tri",
+        "sceneId": "s3-outro",
+        "opacity": 1,
+        "x": 618.0005019192621,
+        "y": 167.50333396643754,
+        "w": 43.99899616147592,
+        "h": 43.99899616147592
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-oob-caption-f251",
+      "ok": true,
+      "msg": "caption(f=251) 在安全边距内 [x=387,y=581,w=506,h=55]",
+      "element": "caption",
+      "frame": 251,
+      "box": {
+        "id": "caption",
+        "kind": "label",
+        "sceneId": "s3-outro",
+        "opacity": 0.1426250000000001,
+        "x": 387.00577207151343,
+        "y": 580.7883377069163,
+        "w": 505.9884558569731,
+        "h": 54.9987452018449
+      }
+    },
+    {
+      "cat": "V",
+      "id": "V-clip-caption",
+      "ok": true,
+      "msg": "caption 文本实测宽 280.4 ≤ 容器宽 460",
+      "element": "caption",
+      "textWidth": 280.3599853515625,
+      "boxWidth": 460
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-title",
+      "ok": true,
+      "msg": "title 在其场景内有可见帧",
+      "element": "title"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-under-w",
+      "ok": true,
+      "msg": "under.w 声明运动，端点位移 420.000",
+      "element": "under",
+      "prop": "w"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-under",
+      "ok": true,
+      "msg": "under 在其场景内有可见帧",
+      "element": "under"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-dot-x",
+      "ok": true,
+      "msg": "dot.x 声明运动，端点位移 810.000",
+      "element": "dot",
+      "prop": "x"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-dot-y",
+      "ok": true,
+      "msg": "dot.y 声明运动，端点位移 100.000",
+      "element": "dot",
+      "prop": "y"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-dot",
+      "ok": true,
+      "msg": "dot 在其场景内有可见帧",
+      "element": "dot"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b1-h",
+      "ok": true,
+      "msg": "b1.h 声明运动，端点位移 320.000",
+      "element": "b1",
+      "prop": "h"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b1-y",
+      "ok": true,
+      "msg": "b1.y 声明运动，端点位移 160.000",
+      "element": "b1",
+      "prop": "y"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-b1",
+      "ok": true,
+      "msg": "b1 在其场景内有可见帧",
+      "element": "b1"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b2-h",
+      "ok": true,
+      "msg": "b2.h 声明运动，端点位移 320.000",
+      "element": "b2",
+      "prop": "h"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b2-y",
+      "ok": true,
+      "msg": "b2.y 声明运动，端点位移 160.000",
+      "element": "b2",
+      "prop": "y"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-b2",
+      "ok": true,
+      "msg": "b2 在其场景内有可见帧",
+      "element": "b2"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b3-h",
+      "ok": true,
+      "msg": "b3.h 声明运动，端点位移 320.000",
+      "element": "b3",
+      "prop": "h"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-b3-y",
+      "ok": true,
+      "msg": "b3.y 声明运动，端点位移 160.000",
+      "element": "b3",
+      "prop": "y"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-b3",
+      "ok": true,
+      "msg": "b3 在其场景内有可见帧",
+      "element": "b3"
+    },
+    {
+      "cat": "H",
+      "id": "H-static-baseline",
+      "ok": true,
+      "msg": "baseline 无运动无入场，静态元素（人工确认是否刻意）",
+      "element": "baseline",
+      "manual": true
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-baseline",
+      "ok": true,
+      "msg": "baseline 在其场景内有可见帧",
+      "element": "baseline"
+    },
+    {
+      "cat": "M",
+      "id": "M-still-ring-scale",
+      "ok": true,
+      "msg": "ring.scale 声明运动，端点位移 0.200",
+      "element": "ring",
+      "prop": "scale"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-ring",
+      "ok": true,
+      "msg": "ring 在其场景内有可见帧",
+      "element": "ring"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-pointer",
+      "ok": true,
+      "msg": "pointer 在其场景内有可见帧",
+      "element": "pointer"
+    },
+    {
+      "cat": "M",
+      "id": "M-invisible-caption",
+      "ok": true,
+      "msg": "caption 在其场景内有可见帧",
+      "element": "caption"
+    },
+    {
+      "cat": "M",
+      "id": "M-trans-s2-bars",
+      "ok": true,
+      "msg": "s2-bars 溶解中点(f=127) 非空白像素 921600",
+      "scene": "s2-bars",
+      "frame": 127
+    },
+    {
+      "cat": "M",
+      "id": "M-trans-s3-outro",
+      "ok": true,
+      "msg": "s3-outro 溶解中点(f=257) 非空白像素 921600",
+      "scene": "s3-outro",
+      "frame": 257
+    },
+    {
+      "cat": "H",
+      "id": "H-aesthetic",
+      "ok": true,
+      "msg": "整体美学（配色/构图/节奏）无法自动判定 —— 需人工复核",
+      "manual": true
+    }
+  ],
+  "issues": [],
+  "summary": {
+    "total": 73,
+    "failed": 0,
+    "manual": 2,
+    "deterministicFails": 0,
+    "visualFails": 0,
+    "motionFails": 0
+  }
+}
