@@ -134,7 +134,7 @@ export function renderPlan(ctx, plan, frame) {
   const prev = i > 0 ? plan.scenes[i - 1] : null;
 
   if (tp.isTransition && prev) {
-    // 出：上一场景在其末态；入：本场景（morph 时用 morphA 做元素连续性，这里统一用交叉）
+    // 出：上一场景在其末态；入：本场景。仅 cut / dissolve 两种转场（morph 已在 validatePlan 阶段拒绝）
     const prevLocal = prev.range.endF - prev.range.startF - 1;
     drawSceneLayer(ctx, plan, prev, prevLocal, tp.outA);
     drawSceneLayer(ctx, plan, scene, localF, tp.inA);
