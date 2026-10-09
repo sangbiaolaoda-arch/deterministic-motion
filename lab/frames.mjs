@@ -1,12 +1,58 @@
 // frames.mjs — 帧来源适配器：把 plan 渲染成像素，供门禁读取。
 //
 // 两个实现：
-//   - canvasFrameSource(plan): 用 @napi-rs/canvas（真实 Skia 光栅器）离屏渲染。
+//   - canvasFrameSource(plan, createCanvas, renderPlan): 用 @napi-rs/canvas（真实 Skia 光栅器）离屏渲染。
 //     这是"真实光栅器"路径，与浏览器 canvas 同一 API。
-//   - stubFrameSource(plan): 不依赖 native 模块，用记录型 ctx 估计非空白像素。
-// 门禁只依赖接口：{ width, height, hashAt(f), nonBlankPx(f), measureTextWidth(el) }。
+//   - stubFrameSource(plan, renderPlan): 不依赖 native 模块，用记录型 ctx 估计"是否有绘制"。
+// 门禁只依赖接口：{ width, height, kind, hashAt(f), nonBlankPx(f), measureTextWidth(el) }。
+//
+// 空白判定（关键修正）：旧实现用「r+g+b > 30」判非空白，但本片背景 #0B0C10 的
+//   通道和 = 39 > 30，导致整块背景恒被当作内容（实测非空白像素恒 = 1280×720），
+//   blank 门禁形同虚设。现改为「与当前帧预期背景色逐通道比对，超过容差才算内容」。
 
 import { createHash } from 'node:crypto';
+import { sceneAt } from './plan.mjs';
+import { transitionProgress } from './motion.mjs';
+
+// #RGB / #RRGGBB -> {r,g,b}
+export function hexToRgb(hex) {
+  const h = String(hex).replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+// 当前帧可能出现的背景色集合：
+//   普通帧 = 当前场景 bg；转场帧 = 上一场景 bg 与当前场景 bg（混合结果落在两者之间）。
+export function backgroundColors(plan, frame) {
+  const { i, scene, localF } = sceneAt(plan, frame);
+  const fallback = plan.film.palette || { bg: '#0B0C10' };
+  const cur = (scene.palette || fallback).bg || '#0B0C10';
+  const out = [hexToRgb(cur)];
+  const tp = transitionProgress(scene, localF);
+  if (tp.isTransition && i > 0) {
+    const prev = plan.scenes[i - 1];
+    const pb = (prev.palette || fallback).bg || '#0B0C10';
+    out.push(hexToRgb(pb));
+  }
+  return out;
+}
+
+const BG_TOL = 16; // 每通道容差：吸收抗锯齿与转场混合造成的轻微偏移
+
+// 统计与所有候选背景色都不同的像素（= 真实内容），忽略 alpha。
+export function countNonBlank(data, bgs, tol = BG_TOL) {
+  let n = 0;
+  for (let k = 0; k < data.length; k += 4) {
+    const r = data[k], g = data[k + 1], b = data[k + 2];
+    let isBg = false;
+    for (const bg of bgs) {
+      if (Math.abs(r - bg.r) <= tol && Math.abs(g - bg.g) <= tol && Math.abs(b - bg.b) <= tol) { isBg = true; break; }
+    }
+    if (!isBg) n++;
+  }
+  return n;
+}
 
 export function canvasFrameSource(plan, createCanvas, renderPlan) {
   const W = plan.film.width, H = plan.film.height;
@@ -27,9 +73,7 @@ export function canvasFrameSource(plan, createCanvas, renderPlan) {
     nonBlankPx(f) {
       render(f);
       const d = ctx.getImageData(0, 0, W, H).data;
-      let n = 0;
-      for (let k = 0; k < d.length; k += 4) if (d[k] + d[k + 1] + d[k + 2] > 30) n++;
-      return n;
+      return countNonBlank(d, backgroundColors(plan, f));
     },
     measureTextWidth(el) {
       ctx.save();
@@ -41,7 +85,7 @@ export function canvasFrameSource(plan, createCanvas, renderPlan) {
   };
 }
 
-// 桩：无 native 时仍可跑结构与运动门禁（非空白用粗糙估计）。
+// 桩：无 native 时仍可跑结构与运动门禁（非空白用"是否发生真实绘制调用"估计）。
 export function stubFrameSource(plan, renderPlan) {
   const W = plan.film.width, H = plan.film.height;
   const calls = [];
