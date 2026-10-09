@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      # 确定性 lint + 逻辑测试（含像素级确定性，@napi-rs/canvas 已随 devDependencies 安装）
+      - name: Test
+        run: npm test
+
+      - name: Build single-file demo
+        run: npm run build
+
+      - name: Artifact sanity
+        run: test -s dist/human-history-45s.html
+
+      # 黄金帧视觉回归。首次为 advisory（continue-on-error），
+      # 在确认与 CI 运行器镜像一致后，可去掉 continue-on-error 变为硬门槛。
+      - name: Golden frames
+        continue-on-error: true
+        run: npm run golden
