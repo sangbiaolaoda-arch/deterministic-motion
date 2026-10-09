@@ -17,9 +17,12 @@ export const SEVERITY = { ERROR: 'ERROR', MANUAL: 'MANUAL', WARN: 'WARN' };
 
 export function runGates(plan, frameSource, opts = {}) {
   const safeMargin = opts.safeMargin != null ? opts.safeMargin : 24;
-  const blankMinPx = opts.blankMinPx != null ? opts.blankMinPx : 1500;
+  // 空白阈值：修正 frames.mjs 的背景误判后，"全背景"帧的内容像素≈0；
+  //   冷开场首帧只有一个小圆点（≈530px），故阈值取 200（远高于 0，又低于最小真实内容）。
+  const blankMinPx = opts.blankMinPx != null ? opts.blankMinPx : 200;
   const jumpPx = opts.jumpPx != null ? opts.jumpPx : 72;      // 相邻帧位移突变阈值
   const jumpOpacity = opts.jumpOpacity != null ? opts.jumpOpacity : 0.6;
+  const accelPx = opts.accelPx != null ? opts.accelPx : 96;   // 相邻帧速度变化（加速度）突变阈值
   const report = {
     film: plan.film.id, generatedBy: 'lab/gates.mjs', ok: true,
     counts: { D: 0, V: 0, M: 0, H: 0 },
@@ -136,6 +139,38 @@ export function runGates(plan, frameSource, opts = {}) {
           break;
         }
       }
+
+      // 加速度突变：相邻帧"速度"的变化过大，区分「匀速/平滑缓动」与「急起/急停」
+      let prevVx = null, prevVy = null, accelReported = false;
+      for (let lf = 1; lf <= localEnd && !accelReported; lf++) {
+        const p = evalElement(el, lf - 1), c = evalElement(el, lf);
+        const vx = c.x - p.x, vy = c.y - p.y;
+        if (prevVx != null) {
+          const acc = Math.hypot(vx - prevVx, vy - prevVy);
+          if (acc > accelPx) {
+            add('M', false, `M-accel-${el.id}-f${s.range.startF + lf}`,
+              `${el.id} 在局部帧 ${lf} 加速度突变 |Δv|=${acc.toFixed(1)}（> ${accelPx}）`,
+              { element: el.id, frame: s.range.startF + lf, accel: acc });
+            accelReported = true;
+          }
+        }
+        prevVx = vx; prevVy = vy;
+      }
+
+      // 入场单调性：入场窗口内 opacity 不应回落（回落 = 入场断裂）
+      if (el.enter) {
+        const d = el.enter.durF || 0;
+        if (d > 1) {
+          let dip = 0;
+          for (let lf = 1; lf <= Math.min(d, localEnd); lf++) {
+            const a = evalElement(el, lf - 1).opacity, b = evalElement(el, lf).opacity;
+            if (b < a - 1e-6) dip = Math.max(dip, a - b);
+          }
+          add('M', dip < 1e-6, `M-enter-${el.id}`,
+            `${el.id} 入场${dip < 1e-6 ? '单调上升' : `出现回落 Δop=${dip.toFixed(3)}（入场断裂）`}`,
+            { element: el.id, dip });
+        }
+      }
     }
   }
 
@@ -143,10 +178,19 @@ export function runGates(plan, frameSource, opts = {}) {
   for (let i = 1; i < plan.scenes.length; i++) {
     const cur = plan.scenes[i];
     if (cur.transitionIn && cur.transitionIn.type === 'dissolve') {
-      const f = cur.range.startF + Math.max(1, Math.floor((cur.transitionIn.durF || 0) / 2));
+      const dur = cur.transitionIn.durF || 0;
+      const f = cur.range.startF + Math.max(1, Math.floor(dur / 2));
       const nb = frameSource.nonBlankPx(f);
       add('M', nb > blankMinPx, `M-trans-${cur.id}`,
-        `${cur.id} 溶解中点(f=${f}) 非空白像素 ${nb}`, { scene: cur.id, frame: f });
+        `${cur.id} 溶解中点(f=${f}) 内容像素 ${nb}`, { scene: cur.id, frame: f });
+      // 声明与实现一致性：声明 dissolve 时，中点必须是"混合帧"——既不等于纯上一场景末帧，
+      // 也不等于纯当前场景。若与端点相同，说明声明了 dissolve 却实际硬切（转场方向冲突）。
+      const mid = frameSource.hashAt(f);
+      const prevPure = frameSource.hashAt(cur.range.startF - 1);
+      const curPure = frameSource.hashAt(cur.range.startF + dur);
+      add('M', mid !== prevPure && mid !== curPure, `M-trans-blend-${cur.id}`,
+        `${cur.id} 溶解中点${mid !== prevPure && mid !== curPure ? '确为混合帧' : '与端点相同（声明 dissolve 未生效）'}`,
+        { scene: cur.id, frame: f });
     }
   }
 
