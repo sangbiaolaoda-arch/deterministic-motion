@@ -1,0 +1,369 @@
+
+
+
+
+
+最小运动系统 · 12 秒样片
+
+  :root{--bg:#07070A;--panel:#12141b;--line:rgba(255,255,255,.10);--ink:#F4EFE6;--muted:#8E8B84;--accent:#EBA23C}
+  *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 56px}
+  h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .stage{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#0B0C10}
+  canvas{display:block;width:100%;height:auto;background:#0B0C10}
+  .bar{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+  button{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;
+    padding:8px 14px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  input[type=range]{flex:1;min-width:220px;accent-color:var(--accent)}
+  .t{font-family:monospace;font-size:12px;color:var(--muted);min-width:96px;text-align:right}
+  .chips{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .chip{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+  .chip.on{color:var(--accent);border-color:var(--accent)}
+
+
+
+
+  最小运动系统 · 12 秒样片
+  Scene Plan 中间层驱动 · 纯数据 → 纯渲染 · 帧号确定性 · 3 镜头（cut + dissolve）
+  
+  
+    播放
+    重播
+    
+    00:00 / 00:12
+  
+  
+
+
+// ===== plan.mjs =====
+// plan.mjs — Scene Plan 中间层：镜头契约 + 机器校验。
+//
+// 设计目标（对齐 OpenMontage 的"阶段契约 + 审批门禁"思想，但不照搬其系统）：
+//   把"一个镜头里有什么、什么时候出现、怎么动、镜头怎么运"写成机器可读的纯数据，
+//   渲染只是这份数据的纯函数。数据可校验、可 diff、可定点返工。
+//
+// 与现有 core.mjs 的关系：不改 core.mjs；本层是"可选的前置契约"，
+//   一个 plan 渲染出的帧与手写场景在语义上等价，但多了可验证性。
+//
+// 所有时间以"帧"为单位，全部相对 film.startF（0..durationF-1）。
+
+// ---- 允许的取值（白名单，越界即校验失败）----------------------------------
+const EASE_NAMES = ['linear', 'easeOutCubic', 'easeInCubic', 'easeInOutCubic', 'smoothstep'];
+const TRACK_PROPS = ['x', 'y', 'w', 'h', 'scale', 'rotate', 'opacity'];
+const TRANSITION_TYPES = ['cut', 'dissolve', 'morph'];
+const ELEMENT_KINDS = ['bar', 'disc', 'line', 'label', 'tri', 'ring'];
+
+// ---- 校验器 ----------------------------------------------------------------
+// 返回 { ok, errors:[{path, msg}], warnings:[...] }。errors 非空 => 不可渲染。
+function validatePlan(plan) {
+  const errors = [];
+  const warnings = [];
+  const E = (path, msg) => errors.push({ path, msg });
+  const Wn = (path, msg) => warnings.push({ path, msg });
+
+  if (!plan || typeof plan !== 'object') { E('', 'plan 不是对象'); return { ok: false, errors, warnings }; }
+  if (plan.version !== '1.0') E('version', `version 必须是 "1.0"，收到 ${JSON.stringify(plan.version)}`);
+
+  const film = plan.film;
+  if (!film) { E('film', '缺少 film'); return { ok: false, errors, warnings }; }
+  for (const k of ['id', 'title', 'fps', 'durationF', 'width', 'height']) {
+    if (!(k in film)) E(`film.${k}`, `缺少字段 ${k}`);
+  }
+  if (film && (!Number.isInteger(film.durationF) || film.durationF  {
+    const sp = `scenes[${si}]`;
+    if (!s.id) E(`${sp}.id`, '缺少 id');
+    else if (sceneIds.has(s.id)) E(`${sp}.id`, `重复的 scene id: ${s.id}`);
+    else sceneIds.add(s.id);
+
+    if (!s.range || !Number.isInteger(s.range.startF) || !Number.isInteger(s.range.endF)) {
+      E(`${sp}.range`, 'range.startF/endF 必须是整数');
+    } else {
+      if (s.range.endF  startF');
+      if (s.range.startF  film.durationF) E(`${sp}.range`, `range 越出 [0,${film.durationF})`);
+      ranges.push({ id: s.id, ...s.range });
+    }
+    if (!s.purpose) Wn(`${sp}.purpose`, '缺少叙事目的（推荐填写）');
+
+    // 相机
+    if (s.camera) {
+      (s.camera.tracks || []).forEach((t, ti) => {
+        if (!['x', 'y', 'zoom', 'rotate'].includes(t.prop)) E(`${sp}.camera.tracks[${ti}].prop`, `未知相机属性 ${t.prop}`);
+        checkKeyframes(`${sp}.camera.tracks[${ti}]`, t, s, E);
+      });
+    }
+
+    // 转场
+    for (const side of ['transitionIn', 'transitionOut']) {
+      const tr = s[side];
+      if (!tr) continue;
+      if (!TRANSITION_TYPES.includes(tr.type)) E(`${sp}.${side}.type`, `未知转场类型 ${tr.type}`);
+      if (tr.durF != null && (!Number.isInteger(tr.durF) || tr.durF  {
+      const ep = `${sp}.elements[${ei}]`;
+      if (!el.id) E(`${ep}.id`, '缺少 element id');
+      else if (ids.has(el.id)) E(`${ep}.id`, `场景内重复 element id: ${el.id}`);
+      else ids.add(el.id);
+      if (!ELEMENT_KINDS.includes(el.kind)) E(`${ep}.kind`, `未知 kind ${el.kind}`);
+      if (!el.layout || ['x', 'y', 'w', 'h'].some((k) => typeof el.layout[k] !== 'number')) E(`${ep}.layout`, 'layout 需要数值 x/y/w/h');
+      if (el.layout && typeof el.layout.z !== 'number') Wn(`${ep}.layout.z`, '缺少 z（默认 0）');
+      if (el.visible) {
+        const v = el.visible;
+        if (v.startF != null && (v.startF  s.range.endF)) E(`${ep}.visible`, 'visible.startF 越出场景范围');
+        if (v.endF != null && (v.endF  s.range.endF)) E(`${ep}.visible`, 'visible.endF 越出场景范围');
+        if (v.startF != null && v.endF != null && v.endF  {
+        if (!TRACK_PROPS.includes(t.prop)) E(`${ep}.tracks[${ti}].prop`, `未知轨道属性 ${t.prop}`);
+        checkKeyframes(`${ep}.tracks[${ti}]`, t, s, E);
+      });
+    });
+    elementIdsByScene.set(s.id, ids);
+  });
+
+  // 连续性引用：transition.morph 需引用存在且持有同名元素的相邻场景
+  scenes.forEach((s, si) => {
+    const tr = s.transitionOut;
+    if (tr && tr.type === 'morph') {
+      if (!tr.to) E(`scenes[${si}].transitionOut.to`, 'morph 需要 to 指向目标场景');
+      else if (!sceneIds.has(tr.to)) E(`scenes[${si}].transitionOut.to`, `morph 目标场景不存在: ${tr.to}`);
+      else if (tr.via) {
+        const from = elementIdsByScene.get(s.id) || new Set();
+        const to = elementIdsByScene.get(tr.to) || new Set();
+        (tr.via || []).forEach((vid, vi) => {
+          if (!from.has(vid)) E(`scenes[${si}].transitionOut.via[${vi}]`, `源场景没有元素 ${vid}`);
+          if (!to.has(vid)) E(`scenes[${si}].transitionOut.via[${vi}]`, `目标场景没有元素 ${vid}`);
+        });
+      }
+    }
+  });
+
+  // 覆盖连续性
+  ranges.sort((a, b) => a.startF - b.startF);
+  if (ranges.length) {
+    if (ranges[0].startF !== 0) E('scenes', `时间线未从 0 开始（首个 startF=${ranges[0].startF}）`);
+    if (ranges[ranges.length - 1].endF !== film.durationF) E('scenes', `时间线未覆盖到 durationF（末 endF=${ranges[ranges.length - 1].endF}）`);
+    for (let i = 1; i  {
+    if (typeof k.f !== 'number' || typeof k.v !== 'number') E(`${path}.keyframes[${ki}]`, 'kf 需要数值 f 与 v');
+    if (k.f  scene.range.endF - scene.range.startF + 1)) {
+      E(`${path}.keyframes[${ki}].f`, `关键帧 f=${k.f} 越出场景时长`);
+    }
+  });
+}
+
+// ---- 查询：帧 -> 当前场景 + 局部帧 ----------------------------------------
+function sceneAt(plan, frame) {
+  const f = Math.min(Math.max(Math.round(frame), 0), plan.film.durationF - 1);
+  const scenes = plan.scenes;
+  let i = 0;
+  for (let k = 0; k  b ? b : v); }
+
+const EASE = {
+  linear: (t) => t,
+  easeOutCubic: (t) => { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); },
+  easeInCubic: (t) => { t = clamp(t, 0, 1); return t * t * t; },
+  easeInOutCubic: (t) => { t = clamp(t, 0, 1); return t  { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); },
+};
+const ease = (name, t) => (EASE[name] || EASE.linear)(t);
+const EASE_NAMES = Object.keys(EASE);
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// 分段线性 + 逐段缓动求值。keyframes 已按 f 严格递增（validatePlan 保证）。
+// 段 [k_i, k_{i+1}] 的缓动取自 k_i.ease（缺省 linear）。
+function evalTrack(track, f) {
+  const kfs = track.keyframes;
+  if (f = last.f) return last.v;
+  for (let i = 0; i = a.f && f = startLocal ? 1 : 0) : clamp((localF - startLocal) / d, 0, 1);
+    const e = ease(el.exit.ease || 'easeInCubic', a);
+    st.opacity *= (1 - e);
+  }
+
+  // 可见窗口硬裁剪
+  const vis = el.visible;
+  if (vis) {
+    // 以元素自身相对窗口（此处以场景局部帧给出）
+    if (vis.startLocalF != null && localF = vis.endLocalF) st.opacity = 0;
+  }
+  return st;
+}
+function elSceneStart() { return 0; } // 入场/离场均以场景局部帧计
+
+// 相机：由轨道求 (x,y,zoom,rotate)，局部帧。
+function cameraAt(camera, localF) {
+  const c = { x: 0, y: 0, zoom: 1, rotate: 0 };
+  if (!camera) return c;
+  for (const t of camera.tracks || []) c[t.prop] = evalTrack(t, localF);
+  return c;
+}
+
+// 转场进度：场景入点处，a∈[0,1]，a=1 表示完全进入本场景。
+// 返回 { inA, outA, morphA, isTransition }。
+function transitionProgress(scene, localF) {
+  const trIn = scene.transitionIn;
+  const durF = (trIn && trIn.durF) || 0;
+  if (!trIn || durF  pixels）。
+//
+// 与 core.mjs 的 renderFrame 一样是"纯函数 + 帧号驱动"；不同点：
+//   画面完全由 plan 数据描述，本文件不含任何具体片子的硬编码场景。
+// 渲染契约：renderPlan(ctx, plan, frame) 对相同 (plan, frame) 必产生相同指令序列。
+
+
+function rgba(hex, a) {
+  const h = String(hex).replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// 一个元素在其"场景局部帧"的屏幕盒（含相机前，场景坐标）。门禁与绘制共用。
+function elementBox(el, localF) {
+  const st = evalElement(el, localF);
+  const cx = st.x, cy = st.y;
+  const w = st.w * st.scale, h = st.h * st.scale;
+  return { x: cx - w / 2, y: cy - h / 2, w, h, cx, cy, rotate: st.rotate, opacity: st.opacity, z: st.z, st };
+}
+
+function drawElement(ctx, el, st, palette) {
+  ctx.save();
+  ctx.globalAlpha = clamp(st.opacity, 0, 1) * (ctx.globalAlpha || 1);
+  ctx.translate(st.x, st.y);
+  if (st.rotate) ctx.rotate((st.rotate * Math.PI) / 180);
+  if (st.scale !== 1) ctx.scale(st.scale, st.scale);
+  const col = (el.style && el.style.color) || palette.accent;
+  switch (el.kind) {
+    case 'bar': {
+      ctx.fillStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      roundRect(ctx, -st.w / 2, -st.h / 2, st.w, st.h, (el.style && el.style.radius) || 0);
+      ctx.fill();
+      break;
+    }
+    case 'disc': {
+      ctx.beginPath();
+      ctx.arc(0, 0, st.w / 2, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      ctx.fill();
+      break;
+    }
+    case 'ring': {
+      ctx.beginPath();
+      ctx.arc(0, 0, st.w / 2, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      ctx.lineWidth = (el.style && el.style.lw) || 6;
+      ctx.stroke();
+      break;
+    }
+    case 'line': {
+      ctx.beginPath();
+      ctx.moveTo(-st.w / 2, 0);
+      ctx.lineTo(st.w / 2, 0);
+      ctx.strokeStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      ctx.lineWidth = (el.style && el.style.lw) || 3;
+      ctx.stroke();
+      break;
+    }
+    case 'tri': {
+      ctx.beginPath();
+      ctx.moveTo(0, -st.h / 2);
+      ctx.lineTo(st.w / 2, st.h / 2);
+      ctx.lineTo(-st.w / 2, st.h / 2);
+      ctx.closePath();
+      ctx.fillStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      ctx.fill();
+      break;
+    }
+    case 'label': {
+      ctx.fillStyle = rgba(col, el.style && el.style.alpha != null ? el.style.alpha : 1);
+      ctx.font = (el.style && el.style.font) || '600 64px "PingFang SC",sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(el.text || el.id, 0, 0);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawSceneLayer(ctx, plan, scene, localF, alpha) {
+  if (alpha  (a.layout.z || 0) - (b.layout.z || 0));
+  for (const el of els) {
+    const st = evalElement(el, localF);
+    if (st.opacity  0 ? plan.scenes[i - 1] : null;
+
+  if (tp.isTransition && prev) {
+    // 出：上一场景在其末态；入：本场景（morph 时用 morphA 做元素连续性，这里统一用交叉）
+    const prevLocal = prev.range.endF - prev.range.startF - 1;
+    drawSceneLayer(ctx, plan, prev, prevLocal, tp.outA);
+    drawSceneLayer(ctx, plan, scene, localF, tp.inA);
+  } else {
+    drawSceneLayer(ctx, plan, scene, localF, 1);
+  }
+  return { sceneIndex: i, sceneId: scene.id, localF, frame };
+}
+
+// 便于门禁：取某帧所有可见元素的屏幕盒（含相机）。
+function visibleBoxes(plan, frame) {
+  const { scene, localF } = sceneAt(plan, frame);
+  const cam = cameraAt(scene.camera, localF);
+  const W = plan.film.width, H = plan.film.height;
+  const out = [];
+  for (const el of scene.elements || []) {
+    const b = elementBox(el, localF);
+    if (b.opacity 320，中心随之上升
+    tracks: [
+      { prop: 'h', keyframes: [{ f: 10, v: 0, ease: easeName }, { f: 70, v: 320 }] },
+      { prop: 'y', keyframes: [{ f: 10, v: 650, ease: easeName }, { f: 70, v: 490 }] },
+    ],
+  };
+}
+
+
+(function () {
+  var canvas = document.getElementById('stage');
+  var ctx = canvas.getContext('2d');
+  var playBtn = document.getElementById('play');
+  var scrub = document.getElementById('scrub');
+  var timeEl = document.getElementById('time');
+  var chipsEl = document.getElementById('chips');
+  var PLAN = SAMPLE;
+  var TOTAL = PLAN.film.durationF, FPS = PLAN.film.fps;
+  var frame = 0, playing = false, lastTs = 0, rafId = 0;
+
+  function fmt(s){ s=Math.max(0,s); var m=Math.floor(s/60), ss=Math.floor(s%60);
+    return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0'); }
+  function draw(){ renderPlan(ctx, PLAN, frame); }
+  function hud(){ timeEl.textContent = fmt(frame/FPS)+' / '+fmt(TOTAL/FPS); scrub.value=String(Math.round(frame)); }
+  function setFrame(f){ frame=Math.min(Math.max(Math.round(f),0),TOTAL-1); draw(); hud(); }
+  function loop(ts){ if(!playing) return; if(!lastTs) lastTs=ts;
+    frame += ((ts-lastTs)/1000)*FPS; lastTs=ts;
+    if(frame>=TOTAL-1){ frame=TOTAL-1; draw(); hud(); playing=false; playBtn.textContent='播放'; return; }
+    draw(); hud(); rafId=requestAnimationFrame(loop); }
+  function play(){ if(playing) return; if(frame>=TOTAL-1) frame=0; playing=true; lastTs=0;
+    playBtn.textContent='暂停'; rafId=requestAnimationFrame(loop); }
+  function pause(){ playing=false; if(rafId) cancelAnimationFrame(rafId); rafId=0; playBtn.textContent='播放'; }
+
+  playBtn.addEventListener('click', function(){ playing?pause():play(); });
+  document.getElementById('restart').addEventListener('click', function(){ pause(); setFrame(0); });
+  scrub.addEventListener('input', function(){ pause(); setFrame(+scrub.value); });
+  canvas.addEventListener('click', function(){ playing?pause():play(); });
+
+  PLAN.scenes.forEach(function(s,i){
+    var b=document.createElement('button'); b.className='chip'; b.textContent=(i+1)+'. '+(s.purpose||s.id);
+    b.addEventListener('click', function(){ pause(); setFrame(s.range.startF); });
+    chipsEl.appendChild(b);
+  });
+
+  setFrame(0);
+  window.__LAB = { plan: PLAN, seek: function(f){ pause(); setFrame(f); }, frame: function(){ return frame; } };
+})();
+
+
