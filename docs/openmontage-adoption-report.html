@@ -1,0 +1,304 @@
+
+
+
+
+
+引入 OpenMontage 实践 · deterministic-motion 审计与落地报告
+
+  :root{
+    --bg:#0b0c10;--panel:#14161d;--panel2:#1a1d26;--ink:#f2efe9;--muted:#9a978f;
+    --line:rgba(255,255,255,.09);--accent:#eba23c;--good:#86c05a;--cyan:#57d2e6;--violet:#a97bff;--red:#e06c5a;
+    --mono:"SFMono-Regular",Consolas,"JetBrains Mono",monospace;
+    --sans:system-ui,-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.68}
+  a{color:var(--cyan);text-decoration:none}
+  code{font-family:var(--mono);font-size:.85em;background:#08090d;border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--accent)}
+  pre{background:#08090d;border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow:auto;margin:12px 0}
+  pre code{background:none;border:0;padding:0;color:#cdd6e6;font-size:12.5px;line-height:1.6}
+  .wrap{max-width:1100px;margin:0 auto;padding:52px 24px 100px}
+  .kicker{font:600 12px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:clamp(26px,3.6vw,40px);line-height:1.16;letter-spacing:-.02em;margin:14px 0 10px}
+  .sub{color:var(--muted);font-size:15px;max-width:900px}
+  .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px}
+  .tag{font:600 11px/1 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:7px 11px}
+  .tag.ok{color:var(--good);border-color:#2c3a1c}.tag.key{color:var(--accent);border-color:#5c4a15}.tag.warn{color:var(--cyan);border-color:#1d4a52}
+  h2{font-size:21px;margin:50px 0 4px;display:flex;align-items:center;gap:12px}
+  h2 .n{font:800 13px/1 var(--mono);color:var(--bg);background:var(--accent);border-radius:8px;padding:6px 9px}
+  h3{font-size:15.5px;margin:22px 0 4px}
+  p{margin:9px 0;color:#d3d0c9}
+  .lead{color:var(--muted)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+  .item{border-left:3px solid var(--line);padding-left:16px;margin:18px 0}
+  .item.ok{border-color:var(--good)}.item.warn{border-color:var(--red)}.item.key2{border-color:var(--accent)}
+  .badge{font:700 10px/1 var(--mono);letter-spacing:.08em;padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel2)}
+  .badge.ok{color:var(--good)}.badge.key2{color:var(--accent)}.badge.warn{color:var(--red)}.badge.info{color:var(--cyan)}
+  table{width:100%;border-collapse:collapse;margin:13px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font:600 11px/1.4 var(--mono);letter-spacing:.06em;text-transform:uppercase}
+  td b{color:var(--ink)}
+  ul{margin:8px 0;padding-left:20px}li{margin:5px 0;color:#d3d0c9}
+  .pass{color:var(--good);font:600 12px/1.6 var(--mono)}.fail{color:var(--red);font:600 12px/1.6 var(--mono)}
+  .stat{display:flex;gap:16px;flex-wrap:wrap;margin:14px 0}
+  .stat .b{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:140px}
+  .stat .b .v{font:800 23px/1 var(--mono);color:var(--good)}
+  .stat .b .k{font-size:12px;color:var(--muted);margin-top:6px}
+  .two{display:grid;gap:14px}@media(min-width:820px){.two{grid-template-columns:1fr 1fr}}
+  .mini{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+  .foot{margin-top:52px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:12.5px}
+  .verdict{background:linear-gradient(180deg,#161a12,#12140f);border:1px solid #2c3a1c;border-radius:16px;padding:20px 22px;margin:18px 0}
+  .warnbox{background:linear-gradient(180deg,#1c1414,#150f0f);border:1px solid #4a2222;border-radius:16px;padding:20px 22px;margin:16px 0}
+
+
+
+
+
+Audit · Design · Motion System · Gates · Delivery
+把 OpenMontage 的有效实践引入 deterministic-motion
+保留 frame-pure 确定性内核，不做无验证的整体重写。本报告按你要求的五项推进：先审计（带 文件:行号 证据）→ 设计 Scene Plan 中间层 → 实现最小运动系统 → 建独立质量门禁（并证明它会失败）→ 交付可运行样片。参考项目 OpenMontage 的设计思想被学习，代码未复制。
+
+  既有基线 22 项仍通过
+  lab 单元 14 项通过
+  门禁 73 项 0 失败
+  故障注入 2/2 被捕获
+  12 秒样片可看
+
+
+
+  一句话结论
+  现有内核是正确的、确定性的、但表达能力窄：场景被写成各自内联的绘图函数，没有元素级时间轨道、没有相机、没有可复用转场——能控制"哪一段播哪个场景"，不能控制"场景内某个元素如何随时间运动"。我新增了一个不触碰 core.mjs 的 lab/：纯数据 Scene Plan + 帧号驱动的运动系统 + 独立门禁。门禁第一次运行就抓出了我自己样片里的 2 个真实缺陷，并在故障注入下正确失败——证明它不是"生成器自证"。
+
+
+1 审计：真实代码证据
+方法：读全 src/core.mjs(647 行)、src/test.mjs、scripts/golden-frames.mjs、scripts/check-determinism.mjs、src/ui.js、src/build.mjs、docs/DESIGN.md、docs/REVIEW-determinism-contract.md、README.md，并实际运行既有测试/构建/黄金帧。
+
+1.1 现有能力与耦合（证据）
+
+  事实主张证据（文件:行号）含义
+  
+    整片是 (ctx,frame) 纯函数core.mjs:610-647 renderFrame；契约 I1–I5 见 DESIGN.md确定性内核成立，必须保留
+    时间真值唯一：BEATS 是源，BEAT_FRAMES 派生core.mjs:30-38（拍表）、:41-52（派生起止帧）只能按"拍"控制，粒度=整段场景
+    拍间过渡只有交叉溶解一种core.mjs:25 CROSS=15；:610-619 溶解实现无 cut/morph/遮挡/跟随等原语
+    7 个场景 = 7 个各自内联的绘图函数core.mjs:170-217(origin)…:480-489(digital)，签名 SCENES[key](ctx,p,color)核心耦合点：无元素抽象、无时间轨道
+    运动靠场景内手写 p（0→1 进度）驱动各场景体内对 p 的 Math.sin/cos、clamp 调用运动无法被单独描述/校验/复用
+    无相机概念全片坐标直接画在 1920×1080；无 camera 字样无法做推近/平移/旋转
+  
+
+
+1.2 能控制 / 不能控制（回答你的三问）
+
+  
+    现在能控制
+    
+      哪一段帧播哪个场景（拍边界、时长）
+      场景之间何时交叉溶解、溶解多长
+      每个场景"整段"的一个进度量 p
+      标题/HUD/细丝等全片叠加层
+    
+  
+  
+    现在不能控制
+    
+      场景内单个元素的入场/主体运动/离场
+      元素级关键帧、缓动、延迟、持续时间
+      镜头级相机（推/移/旋/缩放）
+      cut / morph / 遮挡等连续转场原语
+      对"运动本身"做校验（静止/突变/越界）
+    
+  
+
+
+1.3 测试与门禁的真实覆盖
+
+  层文件覆盖什么缺什么
+  
+    结构+确定性src/test.mjs22 项；8 个采样帧两次渲染像素 diff=0、非空白不测运动连续性、不测越界/裁切/遮挡
+    确定性 lintscripts/check-determinism.mjs禁 Date.now/perf.now/Math.random/new Date只管确定性，不管画面质量
+    黄金帧scripts/golden-frames.mjs14 帧（首/末/每拍交界）像素哈希，按平台存基线帧太少；无元素级、无转场中间帧、无运动质量
+    浏览器自检src/ui.js:120-1428 帧同进程两次渲染比对 + 非空白仍是"生成器自证"；不判运动与构图
+  
+
+关键判断："黄金帧哈希一致"只证明"和过去一样"，不证明"画面对"。 现有测试全绿并不代表镜头可控性或运动质量合格——这正是要补的门禁。
+
+1.4 不可破坏的不变量（改造红线）
+
+  I1 渲染是 (ctx,frame) 纯函数；同帧同输入 ⇒ 同指令序列。
+  I2 不读墙钟、不用未播种随机（mulberry32 固定种子 + _cache 为纯记忆化，见 REVIEW:12）。
+  I3 时间真值唯一来自 BEATS；下游不得重算时间。
+  I4 npm test、npm run build、黄金帧基线不得回归。
+  I5 不改 src/core.mjs 的既有像素行为。
+
+
+2 设计：Scene Plan 中间层
+一份机器可读的镜头契约，位于"想法"与"像素"之间。它描述，不绘制；渲染是它的纯函数。
+
+  
+    契约描述了什么
+    
+      film：id/标题/fps/时长(帧)/画幅/调色板
+      scene：id、range{startF,endF}、purpose（叙事目的）
+      camera：x/y/zoom/rotate 轨道
+      transitionIn/Out：cut / dissolve / morph(+via 同名元素)
+      element：id、kind、role、layout{x,y,w,h,z}、style、visible
+      tracks：x/y/w/h/scale/rotate/opacity 的分段关键帧
+      enter/exit：统一入场/离场（时长+缓动+方向）
+    
+  
+  
+    验证器 validatePlan 拦什么
+    
+      版本/必填字段/类型
+      场景 id 唯一；时间线无缝覆盖 [0,durationF)（间隙/重叠/未满即报错）
+      枚举白名单：kind / 轨道属性 / 转场类型 / ease
+      关键帧 f 严格递增且不越出场景时长
+      元素 id 场景内唯一；visible 窗口落界内
+      morph 的目标场景与 via 元素必须真实存在（引用完整性）
+    
+  
+
+// 完整样片见 lab/sample.mjs（3 镜头 / 10 元素 / cut+dissolve）
+{ id:'s2-bars', range:{startF:120,endF:250}, purpose:'数据：三根条错峰生长',
+  camera:{ tracks:[{prop:'x',keyframes:[{f:0,v:80,ease:'easeInOutCubic'},{f:129,v:-80}]}] },
+  transitionIn:{type:'dissolve',durF:15,ease:'smoothstep'},
+  elements:[ { id:'b1', kind:'bar', layout:{x:460,y:490,w:120,h:320,z:2},
+    tracks:[ {prop:'h',keyframes:[{f:10,v:0,ease:'easeOutCubic'},{f:70,v:320}]},
+             {prop:'y',keyframes:[{f:10,v:650,ease:'easeOutCubic'},{f:70,v:490}]} ] } ] }
+设计取舍：不为结构化而层层抽象。仅两层——plan.mjs（数据+校验）与 motion.mjs（求值）。没有独立的 DSL、没有注册表工厂，避免与 core.mjs 的 SCENES 重复造第二套 runtime。
+
+3 实现：最小运动系统
+
+  能力（你要求）实现文件
+  
+    基于帧号的元素级时间轨道evalTrack 分段关键帧 + 逐段缓动lab/motion.mjs
+    位置/缩放/旋转/透明度/路径轨道属性 x/y/w/h/scale/rotate/opacitylab/motion.mjs
+    统一缓动/延迟/时长/入离场ease(name,t)；enter/exit{durF,ease,from}lab/motion.mjs
+    镜头级相机变换cameraAt → translate/rotate/scalelab/render.mjs
+    可复用连续转场原语transitionProgress cut/dissolve/morph 交叉lab/motion.mjs
+    确定性（同帧同输入同画面）纯函数；无墙钟/无未种子随机已被 check-determinism lab 扫描 0 违规
+  
+
+样片：lab/sample.mjs 12 秒 / 360 帧 / 3 镜头——冷开场标题升入 + 相机推近、三柱错峰生长 + 相机横移、环路 + 指示器 + 相机旋转归零。用满 cut 与 dissolve、相机、轨道、入离场。
+
+4 独立质量门禁
+门禁只看帧像素 + plan，不调用渲染器自检——避免自我背书。四类判定分开：D 确定性 V 视觉回归 M 运动质量 H 人工。
+
+  
+    检查项（lab/gates.mjs）
+    
+      D：抽样帧两次渲染哈希一致
+      V：每镜头首/中/末 + 转场边界非空白
+      V：元素越界安全边距
+      V：同层非预期遮挡（可在 plan 声明 overlapOk）
+      V：文字实测宽 &gt; 容器宽即裁切
+      M：声明运动却意外静止（端点位移≈0）
+      M：进入窗口却整段不可见（运动缺失）
+      M：相邻帧突变（Δxy&gt;72px 或 Δopacity&gt;0.6）
+      M：溶解中点仍有内容（衔接检查）
+      H：静态元素与整体美学 → 显式标 MANUAL
+    
+  
+  
+    机器可读报告字段
+    { film, ok, counts:{D,V,M,H},
+  summary:{ total, failed,
+    deterministicFails, visualFails, motionFails, manual },
+  checks:[{cat,id,ok,msg,scene,element,frame,...}],
+  issues:[ ...仅失败项... ] }
+    每条失败带 镜头 ID / 帧号 / 失败原因，可据此定点返工。
+  
+
+
+
+  证明门禁有牙齿：两次故意的故障注入都被捕获。
+  
+    2注入视觉错误（标题越界）→ V 失败 2 项
+    1注入运动错误（1 帧跳 300px）→ M 突变 1 项
+  
+  并且：门禁首次运行即抓出我样片里的真实缺陷（dot 被相机推近后越界、pointer 与 ring 非预期遮挡）——我据此修了样片，不是修门禁。对应报告：dist/gate-report-injected-visual.json、gate-report-injected-motion.json。
+
+
+5 交付与验收
+5.1 改动的文件及原因
+
+  文件动作原因
+  
+    lab/plan.mjs新增Scene Plan 契约 + validatePlan 校验器
+    lab/motion.mjs新增帧号运动求值（轨道/缓动/入离场/相机/转场）
+    lab/render.mjs新增plan 的纯函数渲染器（帧→像素）
+    lab/sample.mjs新增12 秒样片 = 运动能力的可验证载体
+    lab/gates.mjs新增独立质量门禁
+    lab/frames.mjs / contactsheet.mjs / build-sample.mjs / plan.test.mjs / run.mjs新增帧来源适配、联系表、浏览器样片、单测、一键编排
+    src/core.mjs / src/test.mjs / scripts/*未改保住既有不变量 I4/I5；lab 与主干解耦
+  
+
+
+5.2 测试命令与结果
+$ node lab/run.mjs                       # 一键：单测+校验+门禁+故障注入+联系表+样片
+=== ① 单元测试 ===            plan/motion 单元测试通过：14 项
+=== ② Scene Plan 校验 ===     ✓ 样片通过（3 镜头，警告 0 条）
+=== ③ 质量门禁（真实光栅器）=== 检查 73 项：失败 0（确定0/视觉0/运动0），人工 2
+=== ④ 故障注入 ===           视觉错误 → 捕获 ✓ ；运动错误 → 捕获 ✓
+=== ⑤ 联系表 + 样片 ===      ✓ 联系表 4×3；sample-motion-12s.html (28101 bytes)
+lab 全部环节通过                     exit=0
+
+$ node src/test.mjs                      # 既有基线（确认无回归）
+所有测试通过：22 项                    exit=0
+
+$ node scripts/check-determinism.mjs lab # 对 lab 做确定性扫描
+扫描 10 个文件，发现 0 处非确定性来源。 exit=0
+
+  14lab 单元测试
+  73门禁检查项
+  0门禁失败
+  2/2故障注入被捕获
+  22既有基线仍通过
+
+
+5.3 可看的样片与关键帧
+
+  浏览器样片：dist/sample-motion-12s.html（可直接打开；播放/暂停/拖拽/镜头跳转，走 &lt;canvas&gt; 同一套渲染代码）
+  关键帧联系表：dist/sample-contactsheet.png（12 帧，覆盖各镜头首/中/末与两个转场边界）
+  门禁报告：dist/gate-report-sample.json 及两份注入故障报告
+
+
+5.4 对镜头连续性 / 运动质量 / 画面控制力的真实评价
+
+  成立 运动系统确实能运行且确定
+  样片 360 帧由纯数据驱动；同帧两次渲染像素一致；相机、轨道、入离场、cut/dissolve 都真实生效（联系表可肉眼验证：柱条逐帧长高、相机横移、环路缩放）。
+
+
+  有限但真实 可控性从"整段场景"提升到"元素级"
+  现在能写"标题在 24 帧内从下方升入、同时相机推近 1.12×、蓝色点走一条三段路径"——这是现有 core.mjs 写不出来的。但样片美术是"演示级"，不是成片级。
+
+
+  诚实边界 这不等于成片质量已提升
+  门禁能抓"越界/遮挡/裁切/突变/空白/意外静止"，抓不了"好不好看"。节奏、配色、构图美学在报告里被显式标为 MANUAL，需人工审片。运动系统是"可控性"的杠杆，不是"质量"的保证。
+
+
+5.5 已知限制 / 未完成 / 下一步优先级
+
+  项状态下一步
+  
+    尚未迁移 core.mjs 的 7 个旧场景到 plan未做先做 1 个（如 migration）的等价迁移，验证"旧场景 ⇒ plan"不丢像素，再决定推广
+    浏览器端 Playwright 截图门禁未做（环境无 Playwright）CI 已具 @napi-rs/canvas；若要真实浏览器截图，需引入 Playwright 并对样片页面取帧
+    morph 转场只做了"同名元素引用校验 + 交叉"，未做形变插值部分补真正的顶点/布局插值，并加"形变连续性"门禁项
+    motion 门禁阈值（72px/0.6op）为经验值待标定用多支样片标定，写入 plan 级配置
+    未接入 CI待办package.json 增 test:lab；ci.yml 增一步 node lab/run.mjs
+  
+
+
+
+  OpenMontage 借鉴与边界：学习其"阶段契约 + 审批门禁 + 预览 + 失败返工"的思想（阶段产物机器可读、门禁不靠生成器自证、美学项交人工）；未引入其配音、素材搜索、预算、provider、Backlot 看板等本任务不需要的部分；未复制其代码。许可证兼容性：本项目仅借鉴设计思想、全部代码为本仓原创，不涉及 OpenMontage 代码移植。
+  交付物（/mnt/cos/artifacts/）：
+  lab/ — 10 个源文件（plan/motion/render/sample/gates/frames/contactsheet/build-sample/plan.test/run）
+  dist/sample-motion-12s.html — 可在浏览器打开的 12 秒样片
+  dist/sample-contactsheet.png — 关键帧联系表
+  dist/gate-report-*.json — 门禁报告（1 通过 + 2 注入故障）
+  本报告：openmontage-adoption-report.html
+  核验环境：Node 20.20.2 · @napi-rs/canvas（Skia 光栅器）· 2026-10-09。既有基线未改动，未回归。
+
+
+
+
+
