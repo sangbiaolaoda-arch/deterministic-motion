@@ -94,7 +94,21 @@ ${parts}
     chipsEl.appendChild(b);
   });
 
-  setFrame(0);
+  // 支持 ?f=N 定位到指定帧（浏览器验收脚本用）；?embed=1 只留画布、贴边满屏（截图=纯画布）。
+  var q = new URLSearchParams(location.search);
+  if (q.get('embed')) {
+    document.body.style.margin = '0';
+    document.body.style.background = '#0B0C10';
+    var wrap = document.querySelector('.wrap');
+    if (wrap) { wrap.style.margin = '0'; wrap.style.padding = '0'; wrap.style.maxWidth = 'none'; }
+    document.querySelectorAll('h1, p.sub, .bar, .chips').forEach(function(e){ e.style.display = 'none'; });
+    var stage = document.querySelector('.stage');
+    if (stage) { stage.style.border = 'none'; stage.style.borderRadius = '0'; }
+    canvas.style.width = canvas.getAttribute('width') + 'px';
+    canvas.style.height = canvas.getAttribute('height') + 'px';
+  }
+  var f0 = parseInt(q.get('f') || '0', 10);
+  setFrame(Number.isFinite(f0) ? f0 : 0);
   window.__LAB = { plan: PLAN, seek: function(f){ pause(); setFrame(f); }, frame: function(){ return frame; } };
 })();
 </script>
