@@ -33,3 +33,11 @@ jobs:
       - name: Golden frames
         continue-on-error: true
         run: npm run golden
+
+      # lab 试点：单元测试 + 计划校验 + 质量门禁 + 故障注入 + 检测自检 + 真实浏览器验收
+      - name: Lab gates + fault injection + browser acceptance
+        run: |
+          if ! command -v chromium >/dev/null && ! command -v google-chrome >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y chromium
+          fi
+          npm run lab
