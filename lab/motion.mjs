@@ -60,12 +60,14 @@ export function evalElement(el, localF) {
     const e = ease(el.enter.ease || 'easeOutCubic', a);
     st.opacity *= e;
     if (el.enter.from === 'below') st.y += (1 - e) * (el.enter.dist || 80);
+    else if (el.enter.from === 'above') st.y -= (1 - e) * (el.enter.dist || 80);
     else if (el.enter.from === 'left') st.x -= (1 - e) * (el.enter.dist || 80);
     else if (el.enter.from === 'right') st.x += (1 - e) * (el.enter.dist || 80);
     else if (el.enter.from === 'grow') st.scale *= lerp(el.enter.scale0 != null ? el.enter.scale0 : 0.6, 1, e);
   }
   if (el.exit) {
-    const startLocal = el.exit.startLocalF != null ? el.exit.startLocalF : (el.visible && el.visible.endF != null ? el.visible.endF - elSceneStart(el) : 1e9);
+    const startLocal = el.exit.startLocalF != null ? el.exit.startLocalF
+      : (el.visible && el.visible.endLocalF != null ? el.visible.endLocalF : 1e9);
     const d = el.exit.durF || 0;
     const a = d <= 0 ? (localF >= startLocal ? 1 : 0) : clamp((localF - startLocal) / d, 0, 1);
     const e = ease(el.exit.ease || 'easeInCubic', a);
@@ -81,7 +83,6 @@ export function evalElement(el, localF) {
   }
   return st;
 }
-function elSceneStart() { return 0; } // 入场/离场均以场景局部帧计
 
 // 相机：由轨道求 (x,y,zoom,rotate)，局部帧。
 export function cameraAt(camera, localF) {
