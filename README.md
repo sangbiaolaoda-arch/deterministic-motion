@@ -23,7 +23,7 @@ renderFrame(ctx, frame)   // (画布, 帧号) -> 画面
 ```
 
 只要坚持这条约束，视频就获得了一个关键性质：**可复现**。
-预览、暂停、拖动进度条、"渲染成视频"，走的都是同一个纯函数——所见即所得，且跨机器一致。
+预览、暂停、拖动进度条、"渲染成视频"，走的都是同一个纯函数——所见即所得，同一渲染环境内可复现。
 
 这也是 Remotion / HyperFrames 这类程序化视频工具的地基思想。本项目把它压到最小，作为可直接阅读、直接改造的参考实现。
 
@@ -40,7 +40,7 @@ renderFrame(ctx, frame)   // (画布, 帧号) -> 画面
 ## 特性
 
 - **frame-pure**：`renderFrame` 无副作用、无外部状态、无墙钟依赖。
-- **确定性随机**：`mulberry32(hash(种子字符串))`，跨进程 / 跨机器可复现。
+- **确定性随机**：`mulberry32(hash(种子字符串))`，在固定渲染环境下跨进程可复现（见「已知边界」）。
 - **数据驱动的"拍表"**：`BEATS` 是唯一真相，各拍起止由**累计时长派生**，天然无缝拼接。
 - **零依赖运行**：产物是单个自包含 HTML，双击即可离线播放。
 - **自带确定性自检**：`window.__HH.selfTest()` 对同一帧渲染两次并逐像素比对。
@@ -82,6 +82,9 @@ deterministic-motion/
 │   ├── ui.js         # 浏览器端：控件、播放循环、逐拍导航、自检
 │   ├── build.mjs     # 把 core + ui 内联合并为单文件 HTML
 │   └── test.mjs      # Node 测试（纯逻辑 + 可选像素级）
+├── scripts/
+│   ├── check-determinism.mjs  # 静态检查：禁止非确定性来源（已并入 npm test）
+│   └── golden-frames.mjs      # 黄金帧：固定环境下的视觉回归
 ├── dist/
 │   └── human-history-45s.html   # 构建产物：单文件、离线可播放
 ├── docs/
@@ -113,6 +116,8 @@ deterministic-motion/
 
 - 本仓库的内核是**渲染与演示**层，不包含 SRT 解析、LLM 导演、编码封装（MP4 导出）等更上层管线。
 - 沙箱内若未安装 `@napi-rs/canvas`，像素级确定性测试会被**跳过**（逻辑层与结构层仍完整验证）；此时可在浏览器控制台用 `window.__HH.selfTest()` 补验。
+- **跨机器「逐像素」一致尚需固定环境**：字体栅格化与 Canvas 实现因平台而异。仓库提供 `scripts/golden-frames.mjs` 黄金帧测试，请在固定环境（如 Linux / Docker）中生成基线（`npm run golden:update`）后比对（`npm run golden`），基线按平台分别保存。
+- `@napi-rs/canvas` 是 Skia 原生绑定，并非浏览器 Blink 栅格化；它验证的是**纯函数与几何确定性**，不能代表浏览器内的字体渲染结果。
 
 ## 许可
 
