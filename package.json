@@ -19,12 +19,18 @@
     "test": "node scripts/check-determinism.mjs src && node src/test.mjs",
     "lint:determinism": "node scripts/check-determinism.mjs src",
     "golden": "node scripts/golden-frames.mjs",
-    "golden:update": "node scripts/golden-frames.mjs --update"
+    "golden:update": "node scripts/golden-frames.mjs --update",
+    "lab": "node lab/run.mjs",
+    "test:lab": "node lab/run.mjs",
+    "lab:accept": "node lab/browser-acceptance.mjs"
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.53"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.10"
   }
 }
